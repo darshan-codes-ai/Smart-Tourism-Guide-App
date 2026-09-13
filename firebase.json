@@ -1,0 +1,28 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "tourmate-70d03",
+          "appId": "1:367655408121:android:cd0d7846e3f81d3e496d28",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "tourmate-70d03",
+          "configurations": {
+            "android": "1:367655408121:android:cd0d7846e3f81d3e496d28",
+            "ios": "1:367655408121:ios:ece0e7e798d9a977496d28",
+            "macos": "1:367655408121:ios:ece0e7e798d9a977496d28",
+            "web": "1:367655408121:web:3aa631c63edbbdb3496d28",
+            "windows": "1:367655408121:web:7ae287a491db614b496d28"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

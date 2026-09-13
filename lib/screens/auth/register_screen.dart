@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
+import '../../models/app_user.dart';
+import '../../services/auth_service.dart';
+import '../../services/firestore_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -17,6 +21,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -27,10 +32,74 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _createAccount() {
-    if (_formKey.currentState?.validate() ?? false) {
-      context.go(AppRouter.home);
+  Future<void> _createAccount() async {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
     }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final name = _nameController.text.trim();
+      final credential = await AuthService.instance.registerWithEmail(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      final user = credential.user;
+
+      if (user == null) {
+        throw const AuthServiceException(
+          'Something went wrong. Please try again.',
+        );
+      }
+
+      await user.updateDisplayName(name);
+      await FirestoreService.instance.createUserProfile(
+        _appUserFrom(user, name),
+      );
+
+      if (!mounted) return;
+      context.go(AppRouter.home);
+    } on AuthServiceException catch (error) {
+      _showMessage(error.message);
+    } catch (_) {
+      _showMessage('Something went wrong. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  String? _validateEmail(String? value) {
+    final email = value?.trim() ?? '';
+    final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+    if (email.isEmpty) {
+      return 'Please enter your email';
+    }
+    if (!emailPattern.hasMatch(email)) {
+      return 'Please enter a valid email address.';
+    }
+    return null;
+  }
+
+  AppUser _appUserFrom(User user, String name) {
+    return AppUser(
+      uid: user.uid,
+      name: name,
+      email: user.email ?? _emailController.text.trim(),
+      photoUrl: user.photoURL,
+      phoneNumber: user.phoneNumber,
+      provider: 'password',
+    );
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -85,12 +154,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         labelText: 'Email',
                         prefixIcon: Icon(Icons.mail_outline_rounded),
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        return null;
-                      },
+                      validator: _validateEmail,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -135,8 +199,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 24),
                     FilledButton(
-                      onPressed: _createAccount,
-                      child: const Text('Create Account'),
+                      onPressed: _isLoading ? null : _createAccount,
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Create Account'),
                     ),
                     const SizedBox(height: 16),
                     Wrap(
@@ -145,7 +218,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         const Text('Already have an account?'),
                         TextButton(
-                          onPressed: () => context.go(AppRouter.login),
+                          onPressed: _isLoading
+                              ? null
+                              : () => context.go(AppRouter.login),
                           child: const Text('Login'),
                         ),
                       ],

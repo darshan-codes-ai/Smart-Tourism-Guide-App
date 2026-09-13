@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/router/app_router.dart';
+import '../../services/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -17,7 +18,10 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
     Future<void>.delayed(AppConstants.splashDelay, () {
       if (!mounted) return;
-      context.go(AppRouter.onboarding);
+      final destination = AuthService.instance.currentUser == null
+          ? AppRouter.onboarding
+          : AppRouter.home;
+      context.go(destination);
     });
   }
 
