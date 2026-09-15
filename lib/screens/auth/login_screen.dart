@@ -30,23 +30,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    if (!(_formKey.currentState?.validate() ?? false)) {
-      return;
-    }
-
+    if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _isLoading = true);
-
     try {
       final credential = await AuthService.instance.signInWithEmail(
         email: _emailController.text,
         password: _passwordController.text,
       );
-      final user = credential.user;
-
-      if (user != null) {
-        await FirestoreService.instance.ensureUserProfile(_appUserFrom(user));
-      }
-
+      await _ensureProfile(credential.user);
       if (!mounted) return;
       context.go(AppRouter.home);
     } on AuthServiceException catch (error) {
@@ -54,60 +45,66 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (_) {
       _showMessage('Something went wrong. Please try again.');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _loginWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      final credential = await AuthService.instance.signInWithGoogle();
+      await _ensureProfile(credential.user);
+      if (!mounted) return;
+      context.go(AppRouter.home);
+    } on AuthServiceException catch (error) {
+      _showMessage(error.message);
+    } catch (_) {
+      _showMessage('Google Sign-In failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _ensureProfile(User? user) async {
+    if (user == null) return;
+    await FirestoreService.instance.ensureUserProfile(_appUserFrom(user));
   }
 
   Future<void> _showForgotPasswordDialog() async {
     final resetFormKey = GlobalKey<FormState>();
-    final resetEmailController = TextEditingController(
-      text: _emailController.text.trim(),
-    );
-
+    final resetEmailController = TextEditingController(text: _emailController.text.trim());
     final email = await showDialog<String>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Reset password'),
-          content: Form(
-            key: resetFormKey,
-            child: TextFormField(
-              controller: resetEmailController,
-              keyboardType: TextInputType.emailAddress,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.mail_outline_rounded),
-              ),
-              validator: _validateEmail,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset password'),
+        content: Form(
+          key: resetFormKey,
+          child: TextFormField(
+            controller: resetEmailController,
+            keyboardType: TextInputType.emailAddress,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              prefixIcon: Icon(Icons.mail_outline_rounded),
             ),
+            validator: _validateEmail,
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                if (resetFormKey.currentState?.validate() ?? false) {
-                  Navigator.pop(context, resetEmailController.text.trim());
-                }
-              },
-              child: const Text('Send Link'),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              if (resetFormKey.currentState?.validate() ?? false) {
+                Navigator.pop(context, resetEmailController.text.trim());
+              }
+            },
+            child: const Text('Send Link'),
+          ),
+        ],
+      ),
     );
-
     resetEmailController.dispose();
-
-    if (email == null) {
-      return;
-    }
-
+    if (email == null) return;
     try {
       await AuthService.instance.sendPasswordResetEmail(email);
       _showMessage('Password reset email sent. Please check your inbox.');
@@ -121,13 +118,8 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _validateEmail(String? value) {
     final email = value?.trim() ?? '';
     final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-
-    if (email.isEmpty) {
-      return 'Please enter your email';
-    }
-    if (!emailPattern.hasMatch(email)) {
-      return 'Please enter a valid email address.';
-    }
+    if (email.isEmpty) return 'Please enter your email';
+    if (!emailPattern.hasMatch(email)) return 'Please enter a valid email address.';
     return null;
   }
 
@@ -138,23 +130,18 @@ class _LoginScreenState extends State<LoginScreen> {
       email: user.email ?? _emailController.text.trim(),
       photoUrl: user.photoURL,
       phoneNumber: user.phoneNumber,
-      provider: user.providerData.isNotEmpty
-          ? user.providerData.first.providerId
-          : 'password',
+      provider: user.providerData.isNotEmpty ? user.providerData.first.providerId : 'password',
     );
   }
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -167,32 +154,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.travel_explore_rounded,
-                      size: 44,
-                      color: theme.colorScheme.primary,
-                    ),
+                    Icon(Icons.travel_explore_rounded, size: 44, color: theme.colorScheme.primary),
                     const SizedBox(height: 16),
-                    Text(
-                      'Welcome back',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                    Text('Welcome back', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
                     const SizedBox(height: 8),
-                    Text(
-                      'Sign in to continue exploring ${AppConstants.defaultCity}.',
-                      style: theme.textTheme.bodyLarge,
-                    ),
+                    Text('Sign in to continue exploring ${AppConstants.defaultCity}.', style: theme.textTheme.bodyLarge),
                     const SizedBox(height: 32),
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.mail_outline_rounded),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.mail_outline_rounded)),
                       validator: _validateEmail,
                     ),
                     const SizedBox(height: 16),
@@ -203,59 +175,34 @@ class _LoginScreenState extends State<LoginScreen> {
                         labelText: 'Password',
                         prefixIcon: const Icon(Icons.lock_outline_rounded),
                         suffixIcon: IconButton(
-                          onPressed: () {
-                            setState(() => _obscurePassword = !_obscurePassword);
-                          },
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your password';
-                        }
-                        return null;
-                      },
+                      validator: (value) => value == null || value.isEmpty ? 'Please enter your password' : null,
                     ),
                     Align(
                       alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: _isLoading
-                            ? null
-                            : _showForgotPasswordDialog,
-                        child: const Text('Forgot Password?'),
-                      ),
+                      child: TextButton(onPressed: _isLoading ? null : _showForgotPasswordDialog, child: const Text('Forgot Password?')),
                     ),
                     const SizedBox(height: 8),
-                    FilledButton(
-                      onPressed: _isLoading ? null : _login,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text('Login'),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _isLoading ? null : _login,
+                        child: _isLoading
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Text('Login'),
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: _isLoading ? null : () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Google Sign-In will be added in a later step.',
-                            ),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
-                      label: const Text('Continue with Google'),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _isLoading ? null : _loginWithGoogle,
+                        icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
+                        label: const Text('Continue with Google'),
+                      ),
                     ),
                     const SizedBox(height: 20),
                     Wrap(
@@ -264,12 +211,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         const Text("Don't have an account?"),
                         TextButton(
-                          onPressed: _isLoading
-                              ? null
-                              : () => context.go(AppRouter.register),
+                          onPressed: _isLoading ? null : () => context.go(AppRouter.register),
                           child: const Text('Create Account'),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: _isLoading ? null : () => context.go(AppRouter.phoneLogin),
+                        icon: const Icon(Icons.phone_outlined),
+                        label: const Text('Sign in with phone'),
+                      ),
                     ),
                   ],
                 ),
