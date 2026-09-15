@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../screens/auth/login_screen.dart';
+import '../../screens/auth/phone_login_screen.dart';
 import '../../screens/auth/register_screen.dart';
 import '../../screens/main/main_shell.dart';
 import '../../screens/onboarding/onboarding_screen.dart';
@@ -17,6 +18,7 @@ class AppRouter {
   static const onboarding = '/onboarding';
   static const login = '/login';
   static const register = '/register';
+  static const phoneLogin = '/phone-login';
   static const home = '/home';
 
   static final _authRefresh = _GoRouterRefreshStream(
@@ -30,45 +32,22 @@ class AppRouter {
       final signedIn = AuthService.instance.currentUser != null;
       final location = state.uri.path;
       final onSplash = location == splash;
-      final onAuthRoute = location == login || location == register;
+      final onAuthRoute = location == login || location == register || location == phoneLogin;
       final onOnboarding = location == onboarding;
       final inMainApp = location == home;
 
-      if (onSplash) {
-        return null;
-      }
-
-      if (signedIn && (onAuthRoute || onOnboarding)) {
-        return home;
-      }
-
-      if (!signedIn && inMainApp) {
-        return login;
-      }
-
+      if (onSplash) return null;
+      if (signedIn && (onAuthRoute || onOnboarding)) return home;
+      if (!signedIn && inMainApp) return login;
       return null;
     },
     routes: [
-      GoRoute(
-        path: splash,
-        builder: (context, state) => const SplashScreen(),
-      ),
-      GoRoute(
-        path: onboarding,
-        builder: (context, state) => const OnboardingScreen(),
-      ),
-      GoRoute(
-        path: login,
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: register,
-        builder: (context, state) => const RegisterScreen(),
-      ),
-      GoRoute(
-        path: home,
-        builder: (context, state) => const MainShell(),
-      ),
+      GoRoute(path: splash, builder: (context, state) => const SplashScreen()),
+      GoRoute(path: onboarding, builder: (context, state) => const OnboardingScreen()),
+      GoRoute(path: login, builder: (context, state) => const LoginScreen()),
+      GoRoute(path: register, builder: (context, state) => const RegisterScreen()),
+      GoRoute(path: phoneLogin, builder: (context, state) => const PhoneLoginScreen()),
+      GoRoute(path: home, builder: (context, state) => const MainShell()),
     ],
   );
 }
@@ -76,9 +55,7 @@ class AppRouter {
 class _GoRouterRefreshStream extends ChangeNotifier {
   _GoRouterRefreshStream(Stream<dynamic> stream) {
     notifyListeners();
-    _subscription = stream.asBroadcastStream().listen((_) {
-      notifyListeners();
-    });
+    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
   }
 
   late final StreamSubscription<dynamic> _subscription;
