@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../screens/auth/login_screen.dart';
-import '../../screens/auth/phone_login_screen.dart';
 import '../../screens/auth/register_screen.dart';
 import '../../screens/main/main_shell.dart';
 import '../../screens/onboarding/onboarding_screen.dart';
