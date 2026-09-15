@@ -6,6 +6,7 @@ class AppUser {
     this.photoUrl,
     this.phoneNumber,
     required this.provider,
+    this.role = 'user',
   });
 
   final String uid;
@@ -14,6 +15,7 @@ class AppUser {
   final String? photoUrl;
   final String? phoneNumber;
   final String provider;
+  final String role;
 
   Map<String, dynamic> toMap() {
     return {
@@ -23,6 +25,7 @@ class AppUser {
       'photoUrl': photoUrl,
       'phoneNumber': phoneNumber,
       'provider': provider,
+      'role': role,
     };
   }
 
@@ -34,6 +37,7 @@ class AppUser {
       photoUrl: map['photoUrl'] as String?,
       phoneNumber: map['phoneNumber'] as String?,
       provider: map['provider'] as String? ?? 'password',
+      role: map['role'] as String? ?? 'user',
     );
   }
 }
