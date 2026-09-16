@@ -15,5 +15,10 @@ service cloud.firestore {
         && request.resource.data.role == resource.data.role;
       allow delete: if false;
     }
+
+    match /attractions/{attractionId} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }
