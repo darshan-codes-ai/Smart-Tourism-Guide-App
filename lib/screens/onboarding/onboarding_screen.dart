@@ -30,8 +30,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _OnboardingPage(
       icon: Icons.explore_rounded,
       title: 'Explore Amazing Places',
-      description:
-          'Discover popular attractions, hidden gems and exciting destinations around you.',
+      description: 'Discover popular attractions, hidden gems and exciting destinations around you.',
     ),
     _OnboardingPage(
       icon: Icons.map_rounded,
@@ -42,8 +41,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _OnboardingPage(
       icon: Icons.favorite_rounded,
       title: 'Travel Your Way',
-      description:
-          'Save your favorite places and build personalized trips.',
+      description: 'Save your favorite places and build personalized trips.',
     ),
   ];
 

@@ -31,7 +31,8 @@ class AppRouter {
       final signedIn = AuthService.instance.currentUser != null;
       final location = state.uri.path;
       final onSplash = location == splash;
-      final onAuthRoute = location == login || location == register || location == phoneLogin;
+      final onAuthRoute =
+          location == login || location == register || location == phoneLogin;
       final onOnboarding = location == onboarding;
       final inMainApp = location == home;
 
@@ -42,10 +43,19 @@ class AppRouter {
     },
     routes: [
       GoRoute(path: splash, builder: (context, state) => const SplashScreen()),
-      GoRoute(path: onboarding, builder: (context, state) => const OnboardingScreen()),
+      GoRoute(
+        path: onboarding,
+        builder: (context, state) => const OnboardingScreen(),
+      ),
       GoRoute(path: login, builder: (context, state) => const LoginScreen()),
-      GoRoute(path: register, builder: (context, state) => const RegisterScreen()),
-      GoRoute(path: phoneLogin, builder: (context, state) => const PhoneLoginScreen()),
+      GoRoute(
+        path: register,
+        builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: phoneLogin,
+        builder: (context, state) => const PhoneLoginScreen(),
+      ),
       GoRoute(path: home, builder: (context, state) => const MainShell()),
     ],
   );

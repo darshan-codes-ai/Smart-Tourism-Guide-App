@@ -34,7 +34,9 @@ class AuthService {
     } on FirebaseAuthException catch (error) {
       throw AuthServiceException(_messageForAuthError(error));
     } catch (_) {
-      throw const AuthServiceException('Something went wrong. Please try again.');
+      throw const AuthServiceException(
+        'Something went wrong. Please try again.',
+      );
     }
   }
 
@@ -50,7 +52,9 @@ class AuthService {
     } on FirebaseAuthException catch (error) {
       throw AuthServiceException(_messageForAuthError(error));
     } catch (_) {
-      throw const AuthServiceException('Something went wrong. Please try again.');
+      throw const AuthServiceException(
+        'Something went wrong. Please try again.',
+      );
     }
   }
 
@@ -70,7 +74,9 @@ class AuthService {
       if (message.contains('cancel')) {
         throw const AuthServiceException('Google Sign-In was cancelled.');
       }
-      throw const AuthServiceException('Google Sign-In failed. Please try again.');
+      throw const AuthServiceException(
+        'Google Sign-In failed. Please try again.',
+      );
     }
   }
 
@@ -78,7 +84,8 @@ class AuthService {
     required String phoneNumber,
     required void Function(String verificationId, int? resendToken) codeSent,
     required void Function(FirebaseAuthException error) verificationFailed,
-    required void Function(PhoneAuthCredential credential) verificationCompleted,
+    required void Function(PhoneAuthCredential credential)
+    verificationCompleted,
     required void Function(String verificationId) codeAutoRetrievalTimeout,
     int? forceResendingToken,
   }) async {
@@ -94,7 +101,9 @@ class AuthService {
     } on FirebaseAuthException catch (error) {
       throw AuthServiceException(_messageForAuthError(error));
     } catch (_) {
-      throw const AuthServiceException('Could not send the verification code. Please try again.');
+      throw const AuthServiceException(
+        'Could not send the verification code. Please try again.',
+      );
     }
   }
 
@@ -111,7 +120,9 @@ class AuthService {
     } on FirebaseAuthException catch (error) {
       throw AuthServiceException(_messageForAuthError(error));
     } catch (_) {
-      throw const AuthServiceException('Could not verify the code. Please try again.');
+      throw const AuthServiceException(
+        'Could not verify the code. Please try again.',
+      );
     }
   }
 
@@ -121,7 +132,9 @@ class AuthService {
     } on FirebaseAuthException catch (error) {
       throw AuthServiceException(_messageForAuthError(error));
     } catch (_) {
-      throw const AuthServiceException('Something went wrong. Please try again.');
+      throw const AuthServiceException(
+        'Something went wrong. Please try again.',
+      );
     }
   }
 
@@ -136,7 +149,9 @@ class AuthService {
     } on FirebaseAuthException catch (error) {
       throw AuthServiceException(_messageForAuthError(error));
     } catch (_) {
-      throw const AuthServiceException('Something went wrong. Please try again.');
+      throw const AuthServiceException(
+        'Something went wrong. Please try again.',
+      );
     }
   }
 

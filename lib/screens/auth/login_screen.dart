@@ -69,7 +69,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _showForgotPasswordDialog() async {
     final key = GlobalKey<FormState>();
-    final controller = TextEditingController(text: _emailController.text.trim());
+    final controller = TextEditingController(
+      text: _emailController.text.trim(),
+    );
     final email = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -80,15 +82,22 @@ class _LoginScreenState extends State<LoginScreen> {
             controller: controller,
             keyboardType: TextInputType.emailAddress,
             autofocus: true,
-            decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.mail_outline_rounded)),
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              prefixIcon: Icon(Icons.mail_outline_rounded),
+            ),
             validator: _validateEmail,
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
-              if (key.currentState?.validate() ?? false) Navigator.pop(context, controller.text.trim());
+              if (key.currentState?.validate() ?? false)
+                Navigator.pop(context, controller.text.trim());
             },
             child: const Text('Send Link'),
           ),
@@ -110,21 +119,26 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _validateEmail(String? value) {
     final email = value?.trim() ?? '';
     if (email.isEmpty) return 'Please enter your email';
-    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) return 'Please enter a valid email address.';
+    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email))
+      return 'Please enter a valid email address.';
     return null;
   }
 
   AppUser _appUserFrom(User user) => AppUser(
-        uid: user.uid,
-        name: user.displayName,
-        email: user.email ?? _emailController.text.trim(),
-        photoUrl: user.photoURL,
-        phoneNumber: user.phoneNumber,
-        provider: user.providerData.isNotEmpty ? user.providerData.first.providerId : 'password',
-      );
+    uid: user.uid,
+    name: user.displayName,
+    email: user.email ?? _emailController.text.trim(),
+    photoUrl: user.photoURL,
+    phoneNumber: user.phoneNumber,
+    provider: user.providerData.isNotEmpty
+        ? user.providerData.first.providerId
+        : 'password',
+  );
 
   void _showMessage(String message) {
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    if (mounted)
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -142,24 +156,114 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.travel_explore_rounded, size: 44, color: theme.colorScheme.primary),
+                    Icon(
+                      Icons.travel_explore_rounded,
+                      size: 44,
+                      color: theme.colorScheme.primary,
+                    ),
                     const SizedBox(height: 16),
-                    Text('Welcome back', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+                    Text(
+                      'Welcome back',
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    Text('Sign in to continue exploring ${AppConstants.defaultCity}.', style: theme.textTheme.bodyLarge),
+                    Text(
+                      'Sign in to continue exploring ${AppConstants.defaultCity}.',
+                      style: theme.textTheme.bodyLarge,
+                    ),
                     const SizedBox(height: 32),
-                    TextFormField(controller: _emailController, keyboardType: TextInputType.emailAddress, textInputAction: TextInputAction.next, decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.mail_outline_rounded)), validator: _validateEmail),
+                    TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        prefixIcon: Icon(Icons.mail_outline_rounded),
+                      ),
+                      validator: _validateEmail,
+                    ),
                     const SizedBox(height: 16),
-                    TextFormField(controller: _passwordController, obscureText: _obscurePassword, decoration: InputDecoration(labelText: 'Password', prefixIcon: const Icon(Icons.lock_outline_rounded), suffixIcon: IconButton(onPressed: () => setState(() => _obscurePassword = !_obscurePassword), icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined))), validator: (value) => value == null || value.isEmpty ? 'Please enter your password' : null),
-                    Align(alignment: Alignment.centerRight, child: TextButton(onPressed: _isLoading ? null : _showForgotPasswordDialog, child: const Text('Forgot Password?'))),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        prefixIcon: const Icon(Icons.lock_outline_rounded),
+                        suffixIcon: IconButton(
+                          onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
+                        ),
+                      ),
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Please enter your password'
+                          : null,
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _isLoading
+                            ? null
+                            : _showForgotPasswordDialog,
+                        child: const Text('Forgot Password?'),
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    SizedBox(width: double.infinity, child: FilledButton(onPressed: _isLoading ? null : _login, child: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Login'))),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _isLoading ? null : _login,
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Login'),
+                      ),
+                    ),
                     const SizedBox(height: 12),
-                    SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: _isLoading ? null : _loginWithGoogle, icon: const Icon(Icons.g_mobiledata_rounded, size: 28), label: const Text('Continue with Google'))),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _isLoading ? null : _loginWithGoogle,
+                        icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
+                        label: const Text('Continue with Google'),
+                      ),
+                    ),
                     const SizedBox(height: 20),
-                    Wrap(alignment: WrapAlignment.center, children: [const Text("Don't have an account?"), TextButton(onPressed: _isLoading ? null : () => context.go(AppRouter.register), child: const Text('Create Account'))]),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      children: [
+                        const Text("Don't have an account?"),
+                        TextButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () => context.go(AppRouter.register),
+                          child: const Text('Create Account'),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 8),
-                    Center(child: TextButton.icon(onPressed: _isLoading ? null : () => context.go(AppRouter.phoneLogin), icon: const Icon(Icons.phone_outlined), label: const Text('Sign in with phone'))),
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: _isLoading
+                            ? null
+                            : () => context.go(AppRouter.phoneLogin),
+                        icon: const Icon(Icons.phone_outlined),
+                        label: const Text('Sign in with phone'),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -200,8 +304,11 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     try {
       await AuthService.instance.verifyPhoneNumber(
         phoneNumber: phone,
-        codeSent: (id, _) { if (mounted) setState(() => _verificationId = id); },
-        verificationFailed: (error) => _message(error.message ?? 'Phone verification failed.'),
+        codeSent: (id, _) {
+          if (mounted) setState(() => _verificationId = id);
+        },
+        verificationFailed: (error) =>
+            _message(error.message ?? 'Phone verification failed.'),
         verificationCompleted: _finishSignIn,
         codeAutoRetrievalTimeout: (id) => _verificationId = id,
       );
@@ -217,10 +324,14 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     final id = _verificationId;
     final code = _codeController.text.trim();
     if (id == null) return _message('Send the verification code first.');
-    if (code.length < 6) return _message('Enter the 6-digit verification code.');
+    if (code.length < 6)
+      return _message('Enter the 6-digit verification code.');
     setState(() => _loading = true);
     try {
-      final credential = await AuthService.instance.signInWithPhoneCode(verificationId: id, smsCode: code);
+      final credential = await AuthService.instance.signInWithPhoneCode(
+        verificationId: id,
+        smsCode: code,
+      );
       await _saveProfile(credential.user);
       if (mounted) context.go(AppRouter.home);
     } on AuthServiceException catch (error) {
@@ -231,49 +342,98 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   }
 
   Future<void> _finishSignIn(PhoneAuthCredential credential) async {
-    final credentialResult = await FirebaseAuth.instance.signInWithCredential(credential);
+    final credentialResult = await FirebaseAuth.instance.signInWithCredential(
+      credential,
+    );
     await _saveProfile(credentialResult.user);
     if (mounted) context.go(AppRouter.home);
   }
 
   Future<void> _saveProfile(User? user) async {
     if (user == null) return;
-    await FirestoreService.instance.ensureUserProfile(AppUser(uid: user.uid, name: user.displayName, email: user.email, photoUrl: user.photoURL, phoneNumber: user.phoneNumber ?? _phoneController.text.trim(), provider: 'phone'));
+    await FirestoreService.instance.ensureUserProfile(
+      AppUser(
+        uid: user.uid,
+        name: user.displayName,
+        email: user.email,
+        photoUrl: user.photoURL,
+        phoneNumber: user.phoneNumber ?? _phoneController.text.trim(),
+        provider: 'phone',
+      ),
+    );
   }
 
   void _message(String message) {
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    if (mounted)
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Phone Sign-In')),
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                const Icon(Icons.phone_android_rounded, size: 56),
-                const SizedBox(height: 20),
-                Text('Sign in with phone', style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(height: 8),
-                const Text('Enter your number with country code, for example +91XXXXXXXXXX.'),
+    appBar: AppBar(title: const Text('Phone Sign-In')),
+    body: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Icon(Icons.phone_android_rounded, size: 56),
+              const SizedBox(height: 20),
+              Text(
+                'Sign in with phone',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Enter your number with country code, for example +91XXXXXXXXXX.',
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Phone number',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                ),
+              ),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: _loading ? null : _sendCode,
+                child: const Text('Send verification code'),
+              ),
+              if (_verificationId != null) ...[
                 const SizedBox(height: 24),
-                TextField(controller: _phoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone number', prefixIcon: Icon(Icons.phone_outlined))),
-                const SizedBox(height: 12),
-                FilledButton(onPressed: _loading ? null : _sendCode, child: const Text('Send verification code')),
-                if (_verificationId != null) ...[
-                  const SizedBox(height: 24),
-                  TextField(controller: _codeController, keyboardType: TextInputType.number, maxLength: 6, decoration: const InputDecoration(labelText: 'Verification code', prefixIcon: Icon(Icons.lock_outline_rounded))),
-                  FilledButton(onPressed: _loading ? null : _verifyCode, child: const Text('Verify & Continue')),
-                ],
-                const SizedBox(height: 16),
-                TextButton(onPressed: _loading ? null : () => context.go(AppRouter.login), child: const Text('Back to email sign-in')),
-                if (_loading) const Padding(padding: EdgeInsets.only(top: 16), child: Center(child: CircularProgressIndicator())),
-              ]),
-            ),
+                TextField(
+                  controller: _codeController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  decoration: const InputDecoration(
+                    labelText: 'Verification code',
+                    prefixIcon: Icon(Icons.lock_outline_rounded),
+                  ),
+                ),
+                FilledButton(
+                  onPressed: _loading ? null : _verifyCode,
+                  child: const Text('Verify & Continue'),
+                ),
+              ],
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: _loading ? null : () => context.go(AppRouter.login),
+                child: const Text('Back to email sign-in'),
+              ),
+              if (_loading)
+                const Padding(
+                  padding: EdgeInsets.only(top: 16),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+            ],
           ),
         ),
-      );
+      ),
+    ),
+  );
 }

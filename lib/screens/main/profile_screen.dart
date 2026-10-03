@@ -72,10 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              email,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            Text(email, overflow: TextOverflow.ellipsis),
                           ],
                         ),
                       ),
@@ -183,9 +180,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

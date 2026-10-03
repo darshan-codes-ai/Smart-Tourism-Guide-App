@@ -184,9 +184,8 @@ class _CardImage extends StatelessWidget {
             child: Image.network(
               attraction.imageUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => _ImageFallback(
-                category: attraction.category,
-              ),
+              errorBuilder: (_, _, _) =>
+                  _ImageFallback(category: attraction.category),
               loadingBuilder: (context, child, progress) {
                 if (progress == null) return child;
                 return const ColoredBox(color: Color(0xFFE8F1F4));
@@ -256,11 +255,7 @@ class _RatingDistanceRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        Icon(
-          Icons.near_me_rounded,
-          size: 15,
-          color: theme.colorScheme.primary,
-        ),
+        Icon(Icons.near_me_rounded, size: 15, color: theme.colorScheme.primary),
         const SizedBox(width: 4),
         Flexible(
           child: Text(
