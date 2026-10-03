@@ -9,12 +9,20 @@ class SavedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final store = SavedPlacesStore.instance;
+
+    if (store.hasUnresolvedSavedIds && !store.isResolving) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        store.resolveMissingAttractions();
+      });
+    }
 
     return SafeArea(
       child: ListenableBuilder(
-        listenable: SavedPlacesStore.instance,
+        listenable: store,
         builder: (context, _) {
-          final saved = SavedPlacesStore.instance.savedAttractions;
+          final saved = store.savedAttractions;
+          final isResolving = store.isResolving && saved.isEmpty;
 
           return Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
@@ -34,7 +42,9 @@ class SavedScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 Expanded(
-                  child: saved.isEmpty
+                  child: isResolving
+                      ? const Center(child: CircularProgressIndicator())
+                      : saved.isEmpty
                       ? _EmptySavedState(theme: theme)
                       : ListView.separated(
                           padding: const EdgeInsets.only(bottom: 24),

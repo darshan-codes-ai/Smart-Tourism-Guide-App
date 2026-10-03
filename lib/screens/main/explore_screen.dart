@@ -6,8 +6,11 @@ import '../../models/attraction.dart';
 import '../../services/attraction_service.dart';
 import '../../widgets/attraction_card.dart';
 import '../../widgets/category_chip.dart';
+import 'map_screen.dart';
 
 enum ExploreSort { rating, distance }
+
+enum ExploreViewMode { list, map }
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -20,6 +23,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final _searchController = TextEditingController();
   String? _selectedCategory;
   ExploreSort _sort = ExploreSort.rating;
+  ExploreViewMode _viewMode = ExploreViewMode.list;
   int _retryKey = 0;
 
   @override
@@ -74,15 +78,24 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Explore',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Explore',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    _ExploreViewToggle(
+                      selectedView: _viewMode,
+                      onChanged: (mode) => setState(() => _viewMode = mode),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Search, filter, and browse places. Maps and live data will connect later.',
+                  'Search, filter, and browse places across the city.',
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 16),
@@ -234,6 +247,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
                 final attractions = _filterAndSort(allAttractions);
 
+                if (_viewMode == ExploreViewMode.map) {
+                  return MapScreen(attractions: attractions);
+                }
+
                 if (attractions.isEmpty) {
                   return const Center(
                     child: Text('No attractions match your filters yet.'),
@@ -312,5 +329,106 @@ class _ExploreScreenState extends State<ExploreScreen> {
     if (selected != null) {
       setState(() => _sort = selected);
     }
+  }
+}
+
+class _ExploreViewToggle extends StatelessWidget {
+  const _ExploreViewToggle({
+    required this.selectedView,
+    required this.onChanged,
+  });
+
+  final ExploreViewMode selectedView;
+  final ValueChanged<ExploreViewMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8EFF2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(3),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ToggleButton(
+            label: 'List',
+            icon: Icons.view_list_rounded,
+            isSelected: selectedView == ExploreViewMode.list,
+            onTap: () => onChanged(ExploreViewMode.list),
+          ),
+          _ToggleButton(
+            label: 'Map',
+            icon: Icons.map_rounded,
+            isSelected: selectedView == ExploreViewMode.map,
+            onTap: () => onChanged(ExploreViewMode.map),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToggleButton extends StatelessWidget {
+  const _ToggleButton({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(9),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected ? theme.colorScheme.surface : Colors.transparent,
+          borderRadius: BorderRadius.circular(9),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected
+                    ? theme.colorScheme.primary
+                    : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

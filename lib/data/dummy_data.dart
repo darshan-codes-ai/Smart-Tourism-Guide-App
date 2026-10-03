@@ -1,6 +1,13 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/attraction.dart';
+import '../services/attraction_service.dart';
+import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 
 class DummyData {
   DummyData._();
@@ -111,22 +118,88 @@ class DummyData {
   static List<Attraction> get nearby => attractions;
 }
 
-/// Simple in-memory store so favorite toggles stay consistent across tabs.
-/// This can later be replaced with Firestore without changing the UI much.
+/// Central store for user favorites that stays synchronized with Firestore
+/// when authenticated, and falls back gracefully when unauthenticated.
 class SavedPlacesStore extends ChangeNotifier {
-  SavedPlacesStore._();
+  SavedPlacesStore._() {
+    _initAuthListener();
+  }
 
   static final SavedPlacesStore instance = SavedPlacesStore._();
 
   final Set<String> _savedIds = <String>{};
   final Map<String, Attraction> _knownAttractions = <String, Attraction>{};
+  final Set<String> _pendingResolutionIds = <String>{};
+
+  String? _currentUid;
+  StreamSubscription<User?>? _authSubscription;
+  StreamSubscription<Set<String>>? _favoritesSubscription;
+  bool _isResolving = false;
+
+  bool get isResolving => _isResolving;
+
+  bool get hasUnresolvedSavedIds =>
+      _savedIds.any((id) => !_knownAttractions.containsKey(id));
+
+  Set<String> get savedIds => Set<String>.unmodifiable(_savedIds);
 
   bool isSaved(String id) => _savedIds.contains(id);
+
+  void _initAuthListener() {
+    if (Firebase.apps.isEmpty) return;
+    try {
+      _authSubscription = AuthService.instance.authStateChanges.listen(
+        _onAuthStateChanged,
+        onError: (e) {
+          debugPrint('SavedPlacesStore auth listener error: $e');
+        },
+      );
+    } catch (_) {
+      // Ignored if auth cannot be initialized (e.g. unit tests without Firebase)
+    }
+  }
+
+  void _onAuthStateChanged(User? user) {
+    handleUserUidChanged(user?.uid);
+  }
+
+  void handleUserUidChanged(String? newUid) {
+    if (_currentUid == newUid) return;
+
+    _currentUid = newUid;
+    _favoritesSubscription?.cancel();
+    _favoritesSubscription = null;
+
+    if (newUid == null) {
+      // User signs out -> local favorite state is cleared.
+      _savedIds.clear();
+      _isResolving = false;
+      _pendingResolutionIds.clear();
+      notifyListeners();
+      return;
+    }
+
+    // User signs in -> favorites load automatically.
+    _favoritesSubscription = FirestoreService.instance
+        .watchFavoriteIds(newUid)
+        .listen(
+          (ids) {
+            _savedIds
+              ..clear()
+              ..addAll(ids);
+            notifyListeners();
+            resolveMissingAttractions();
+          },
+          onError: (error) {
+            debugPrint('SavedPlacesStore watchFavoriteIds error: $error');
+          },
+        );
+  }
 
   void registerAttractions(Iterable<Attraction> attractions) {
     for (final attraction in attractions) {
       _knownAttractions[attraction.id] = attraction;
-      if (attraction.isSaved) {
+      if (_currentUid == null && attraction.isSaved) {
         _savedIds.add(attraction.id);
       }
     }
@@ -140,17 +213,102 @@ class SavedPlacesStore extends ChangeNotifier {
   }
 
   void toggle(String id) {
-    if (_savedIds.contains(id)) {
+    final wasSaved = _savedIds.contains(id);
+    if (wasSaved) {
       _savedIds.remove(id);
     } else {
       _savedIds.add(id);
     }
+    // Tapping the heart -> UI should update immediately.
     notifyListeners();
+
+    final uid = _currentUid;
+    if (uid != null) {
+      _persistToggle(uid, id, wasSaved);
+    }
+  }
+
+  Future<void> _persistToggle(String uid, String id, bool wasSaved) async {
+    try {
+      if (wasSaved) {
+        await FirestoreService.instance.removeFavorite(uid, id);
+      } else {
+        await FirestoreService.instance.addFavorite(uid, id);
+        if (!_knownAttractions.containsKey(id)) {
+          resolveMissingAttractions();
+        }
+      }
+    } catch (error) {
+      debugPrint('Failed to persist favorite toggle for $id: $error');
+      // Revert optimistic update on failure
+      if (wasSaved) {
+        _savedIds.add(id);
+      } else {
+        _savedIds.remove(id);
+      }
+      notifyListeners();
+    }
+  }
+
+  Future<void> resolveMissingAttractions() async {
+    final missingIds = _savedIds
+        .where(
+          (id) =>
+              !_knownAttractions.containsKey(id) &&
+              !_pendingResolutionIds.contains(id),
+        )
+        .toList();
+
+    if (missingIds.isEmpty) return;
+
+    _pendingResolutionIds.addAll(missingIds);
+    _isResolving = true;
+    notifyListeners();
+
+    try {
+      await Future.wait(
+        missingIds.map((id) async {
+          try {
+            final attraction = await AttractionService.instance.getAttraction(
+              id,
+            );
+            if (attraction != null) {
+              _knownAttractions[id] = attraction;
+            }
+          } catch (e) {
+            debugPrint('Error resolving attraction $id: $e');
+          } finally {
+            _pendingResolutionIds.remove(id);
+          }
+        }),
+      );
+    } finally {
+      _isResolving = _pendingResolutionIds.isNotEmpty;
+      notifyListeners();
+    }
   }
 
   @visibleForTesting
   void resetForTest() {
+    _authSubscription?.cancel();
+    _authSubscription = null;
+    _favoritesSubscription?.cancel();
+    _favoritesSubscription = null;
+    _currentUid = null;
+    _isResolving = false;
+    _pendingResolutionIds.clear();
     _savedIds.clear();
     _knownAttractions.clear();
+  }
+
+  @visibleForTesting
+  void handleUserUidChangedForTest(String? uid) {
+    handleUserUidChanged(uid);
+  }
+
+  @visibleForTesting
+  void listenToAuthStreamForTest(Stream<User?> stream) {
+    _authSubscription?.cancel();
+    _authSubscription = stream.listen(_onAuthStateChanged);
   }
 }

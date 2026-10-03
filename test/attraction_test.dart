@@ -152,19 +152,22 @@ void main() {
   });
 
   group('AttractionService tests', () {
-    test('devFallbackEnabled returns dummy data when enabled in test', () async {
-      AttractionService.devFallbackEnabled = true;
+    test(
+      'devFallbackEnabled returns dummy data when enabled in test',
+      () async {
+        AttractionService.devFallbackEnabled = true;
 
-      final attractions = await AttractionService.instance.getAttractions();
-      expect(attractions.isNotEmpty, true);
-      expect(attractions.length, DummyData.attractions.length);
+        final attractions = await AttractionService.instance.getAttractions();
+        expect(attractions.isNotEmpty, true);
+        expect(attractions.length, DummyData.attractions.length);
 
-      final single = await AttractionService.instance.getAttraction('1');
-      expect(single, isNotNull);
-      expect(single!.name, 'Charminar');
+        final single = await AttractionService.instance.getAttraction('1');
+        expect(single, isNotNull);
+        expect(single!.name, 'Charminar');
 
-      AttractionService.devFallbackEnabled = false;
-    });
+        AttractionService.devFallbackEnabled = false;
+      },
+    );
 
     test('uninitialized Firebase throws StateError when devFallbackEnabled is false', () async {
       AttractionService.devFallbackEnabled = false;
@@ -234,4 +237,3 @@ void main() {
     });
   });
 }
-

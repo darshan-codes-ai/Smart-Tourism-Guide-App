@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/app_user.dart';
 
@@ -7,13 +9,27 @@ class FirestoreService {
 
   static final FirestoreService instance = FirestoreService._();
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  /// Optional in-memory test favorites store for unit testing without live Firebase.
+  @visibleForTesting
+  static Map<String, Set<String>>? testFavorites;
 
-  CollectionReference<Map<String, dynamic>> get _users =>
-      _firestore.collection('users');
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
+
+  CollectionReference<Map<String, dynamic>>? get _users {
+    if (Firebase.apps.isEmpty) return null;
+    return _firestore.collection('users');
+  }
+
+  CollectionReference<Map<String, dynamic>>? _favoritesRef(String uid) {
+    final users = _users;
+    if (users == null) return null;
+    return users.doc(uid).collection('favorites');
+  }
 
   Future<void> createUserProfile(AppUser user) async {
-    final userRef = _users.doc(user.uid);
+    final users = _users;
+    if (users == null) return;
+    final userRef = users.doc(user.uid);
     final snapshot = await userRef.get();
 
     if (snapshot.exists) {
@@ -29,7 +45,9 @@ class FirestoreService {
   }
 
   Future<void> ensureUserProfile(AppUser user) async {
-    final userRef = _users.doc(user.uid);
+    final users = _users;
+    if (users == null) return;
+    final userRef = users.doc(user.uid);
     final snapshot = await userRef.get();
 
     if (snapshot.exists) {
@@ -41,7 +59,9 @@ class FirestoreService {
   }
 
   Future<AppUser?> getUserProfile(String uid) async {
-    final snapshot = await _users.doc(uid).get();
+    final users = _users;
+    if (users == null) return null;
+    final snapshot = await users.doc(uid).get();
     final data = snapshot.data();
 
     if (!snapshot.exists || data == null) {
@@ -52,7 +72,9 @@ class FirestoreService {
   }
 
   Future<void> updateUserProfile(AppUser user) async {
-    await _updateUserProfileDocument(_users.doc(user.uid), user);
+    final users = _users;
+    if (users == null) return;
+    await _updateUserProfileDocument(users.doc(user.uid), user);
   }
 
   Future<void> _updateUserProfileDocument(
@@ -63,5 +85,65 @@ class FirestoreService {
       ...user.toMap(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+  }
+
+  /// Streams the set of attraction IDs saved by the user with [uid].
+  Stream<Set<String>> watchFavoriteIds(String uid) {
+    if (testFavorites != null) {
+      return Stream.value(
+        Set<String>.from(testFavorites![uid] ?? const <String>{}),
+      );
+    }
+
+    final favorites = _favoritesRef(uid);
+    if (favorites == null) {
+      return const Stream<Set<String>>.empty();
+    }
+
+    return favorites.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => doc.id).toSet();
+    });
+  }
+
+  /// Adds an attraction to the user's favorites subcollection.
+  Future<void> addFavorite(String uid, String attractionId) async {
+    if (testFavorites != null) {
+      testFavorites!.putIfAbsent(uid, () => <String>{}).add(attractionId);
+      return;
+    }
+
+    final favorites = _favoritesRef(uid);
+    if (favorites == null) return;
+
+    await favorites.doc(attractionId).set({
+      'attractionId': attractionId,
+      'savedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  /// Removes an attraction from the user's favorites subcollection.
+  Future<void> removeFavorite(String uid, String attractionId) async {
+    if (testFavorites != null) {
+      testFavorites![uid]?.remove(attractionId);
+      return;
+    }
+
+    final favorites = _favoritesRef(uid);
+    if (favorites == null) return;
+
+    await favorites.doc(attractionId).delete();
+  }
+
+  /// Checks if an attraction is favorited by the user with [uid].
+  Future<bool> isFavorite(String uid, String attractionId) async {
+    if (testFavorites != null) {
+      return testFavorites![uid]?.contains(attractionId) ?? false;
+    }
+
+    final favorites = _favoritesRef(uid);
+    if (favorites == null) return false;
+
+    final doc = await favorites.doc(attractionId).get();
+    return doc.exists;
   }
 }

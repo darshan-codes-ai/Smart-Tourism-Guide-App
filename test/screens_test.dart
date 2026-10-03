@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tourmate/core/theme/app_theme.dart';
@@ -62,7 +63,9 @@ void main() {
   });
 
   group('HomeScreen Firestore integration tests', () {
-    testWidgets('shows loading state while waiting for Firestore', (tester) async {
+    testWidgets('shows loading state while waiting for Firestore', (
+      tester,
+    ) async {
       final controller = StreamController<List<Attraction>>();
       AttractionService.testStream = controller.stream;
 
@@ -75,27 +78,42 @@ void main() {
       await controller.close();
     });
 
-    testWidgets('shows empty state when Firestore has no attractions', (tester) async {
+    testWidgets('shows empty state when Firestore has no attractions', (
+      tester,
+    ) async {
       AttractionService.testStream = Stream.value(const <Attraction>[]);
 
       await tester.pumpWidget(buildTestableWidget(const HomeScreen()));
       await tester.pumpAndSettle();
 
-      expect(find.text('No attractions available yet in Firestore.'), findsOneWidget);
+      expect(
+        find.text('No attractions available yet in Firestore.'),
+        findsOneWidget,
+      );
       expect(find.text('Check again'), findsOneWidget);
     });
 
-    testWidgets('shows error state and retry button when Firestore stream fails', (tester) async {
-      AttractionService.testStream = Stream.error(Exception('Firestore network error'));
+    testWidgets(
+      'shows error state and retry button when Firestore stream fails',
+      (tester) async {
+        AttractionService.testStream = Stream.error(
+          Exception('Firestore network error'),
+        );
 
-      await tester.pumpWidget(buildTestableWidget(const HomeScreen()));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(buildTestableWidget(const HomeScreen()));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Could not load attractions from Firestore.'), findsOneWidget);
-      expect(find.widgetWithText(TextButton, 'Retry'), findsOneWidget);
-    });
+        expect(
+          find.text('Could not load attractions from Firestore.'),
+          findsOneWidget,
+        );
+        expect(find.widgetWithText(TextButton, 'Retry'), findsOneWidget);
+      },
+    );
 
-    testWidgets('shows attractions when Firestore returns data', (tester) async {
+    testWidgets('shows attractions when Firestore returns data', (
+      tester,
+    ) async {
       AttractionService.testStream = Stream.value(sampleAttractions);
 
       await tester.pumpWidget(buildTestableWidget(const HomeScreen()));
@@ -109,7 +127,9 @@ void main() {
   });
 
   group('ExploreScreen Firestore integration tests', () {
-    testWidgets('shows loading state while waiting for Firestore', (tester) async {
+    testWidgets('shows loading state while waiting for Firestore', (
+      tester,
+    ) async {
       final controller = StreamController<List<Attraction>>();
       AttractionService.testStream = controller.stream;
 
@@ -122,19 +142,26 @@ void main() {
       await controller.close();
     });
 
-    testWidgets('shows empty state when Firestore has no attractions', (tester) async {
+    testWidgets('shows empty state when Firestore has no attractions', (
+      tester,
+    ) async {
       AttractionService.testStream = Stream.value(const <Attraction>[]);
 
       await tester.pumpWidget(buildTestableWidget(const ExploreScreen()));
       await tester.pumpAndSettle();
 
       expect(find.text('No attractions available yet'), findsOneWidget);
-      expect(find.text('No attraction documents found in Firestore.'), findsOneWidget);
+      expect(
+        find.text('No attraction documents found in Firestore.'),
+        findsOneWidget,
+      );
       expect(find.widgetWithText(OutlinedButton, 'Refresh'), findsOneWidget);
     });
 
     testWidgets('shows error state when Firestore fails', (tester) async {
-      AttractionService.testStream = Stream.error(Exception('Firestore failure'));
+      AttractionService.testStream = Stream.error(
+        Exception('Firestore failure'),
+      );
 
       await tester.pumpWidget(buildTestableWidget(const ExploreScreen()));
       await tester.pumpAndSettle();
@@ -143,36 +170,41 @@ void main() {
       expect(find.widgetWithText(FilledButton, 'Retry'), findsOneWidget);
     });
 
-    testWidgets('renders Firestore attractions and performs search & category filter', (tester) async {
-      AttractionService.testStream = Stream.value(sampleAttractions);
+    testWidgets(
+      'renders Firestore attractions and performs search & category filter',
+      (tester) async {
+        AttractionService.testStream = Stream.value(sampleAttractions);
 
-      await tester.pumpWidget(buildTestableWidget(const ExploreScreen()));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(buildTestableWidget(const ExploreScreen()));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Charminar'), findsOneWidget);
-      expect(find.text('Golconda Fort'), findsOneWidget);
-      expect(find.text('Hussain Sagar'), findsOneWidget);
+        expect(find.text('Charminar'), findsOneWidget);
+        expect(find.text('Golconda Fort'), findsOneWidget);
+        expect(find.text('Hussain Sagar'), findsOneWidget);
 
-      // Filter by category "Nature" using CategoryChip
-      await tester.tap(find.widgetWithText(CategoryChip, 'Nature'));
-      await tester.pumpAndSettle();
+        // Filter by category "Nature" using CategoryChip
+        await tester.tap(find.widgetWithText(CategoryChip, 'Nature'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Hussain Sagar'), findsOneWidget);
-      expect(find.text('Charminar'), findsNothing);
-      expect(find.text('Golconda Fort'), findsNothing);
+        expect(find.text('Hussain Sagar'), findsOneWidget);
+        expect(find.text('Charminar'), findsNothing);
+        expect(find.text('Golconda Fort'), findsNothing);
 
-      // Search for "Hussain"
-      await tester.enterText(find.byType(TextField), 'Hussain');
-      await tester.pumpAndSettle();
+        // Search for "Hussain"
+        await tester.enterText(find.byType(TextField), 'Hussain');
+        await tester.pumpAndSettle();
 
-      expect(find.text('Hussain Sagar'), findsOneWidget);
+        expect(find.text('Hussain Sagar'), findsOneWidget);
 
-      // Search non-existent
-      await tester.enterText(find.byType(TextField), 'xyz123');
-      await tester.pumpAndSettle();
+        // Search non-existent
+        await tester.enterText(find.byType(TextField), 'xyz123');
+        await tester.pumpAndSettle();
 
-      expect(find.text('No attractions match your filters yet.'), findsOneWidget);
-    });
+        expect(
+          find.text('No attractions match your filters yet.'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 }
-

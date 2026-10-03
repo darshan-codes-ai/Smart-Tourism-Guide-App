@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../screens/auth/login_screen.dart';
 import '../../screens/auth/register_screen.dart';
 import '../../screens/main/main_shell.dart';
+import '../../screens/main/map_screen.dart';
 import '../../screens/onboarding/onboarding_screen.dart';
 import '../../screens/splash/splash_screen.dart';
 import '../../services/auth_service.dart';
@@ -19,6 +20,7 @@ class AppRouter {
   static const register = '/register';
   static const phoneLogin = '/phone-login';
   static const home = '/home';
+  static const map = '/map';
 
   static final _authRefresh = _GoRouterRefreshStream(
     AuthService.instance.authStateChanges,
@@ -34,7 +36,7 @@ class AppRouter {
       final onAuthRoute =
           location == login || location == register || location == phoneLogin;
       final onOnboarding = location == onboarding;
-      final inMainApp = location == home;
+      final inMainApp = location == home || location == map;
 
       if (onSplash) return null;
       if (signedIn && (onAuthRoute || onOnboarding)) return home;
@@ -57,6 +59,10 @@ class AppRouter {
         builder: (context, state) => const PhoneLoginScreen(),
       ),
       GoRoute(path: home, builder: (context, state) => const MainShell()),
+      GoRoute(
+        path: map,
+        builder: (context, state) => const MapScreen(showAppBar: true),
+      ),
     ],
   );
 }

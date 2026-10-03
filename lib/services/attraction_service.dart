@@ -17,6 +17,9 @@ class AttractionService {
   /// Optional test stream override for widget testing without live Firebase.
   static Stream<List<Attraction>>? testStream;
 
+  /// Optional mock resolver for testing getAttraction.
+  static Future<Attraction?> Function(String id)? testGetAttraction;
+
   FirebaseFirestore? get _firestore {
     if (Firebase.apps.isEmpty) return null;
     return FirebaseFirestore.instance;
@@ -97,6 +100,9 @@ class AttractionService {
   /// Fetches a single attraction document by [id] from `/attractions/{id}`.
   /// Returns null if the document does not exist.
   Future<Attraction?> getAttraction(String id) async {
+    if (testGetAttraction != null) {
+      return testGetAttraction!(id);
+    }
     final collection = _attractionsRef;
     if (collection == null) {
       if (devFallbackEnabled) {
