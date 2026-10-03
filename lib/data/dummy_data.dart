@@ -132,6 +132,7 @@ class DummyData {
 class SavedPlacesStore extends ChangeNotifier {
   SavedPlacesStore._() {
     for (final attraction in DummyData.attractions) {
+      _knownAttractions[attraction.id] = attraction;
       if (attraction.isSaved) {
         _savedIds.add(attraction.id);
       }
@@ -141,12 +142,20 @@ class SavedPlacesStore extends ChangeNotifier {
   static final SavedPlacesStore instance = SavedPlacesStore._();
 
   final Set<String> _savedIds = <String>{};
+  final Map<String, Attraction> _knownAttractions = <String, Attraction>{};
 
   bool isSaved(String id) => _savedIds.contains(id);
 
+  void registerAttractions(Iterable<Attraction> attractions) {
+    for (final attraction in attractions) {
+      _knownAttractions[attraction.id] = attraction;
+    }
+  }
+
   List<Attraction> get savedAttractions {
-    return DummyData.attractions
-        .where((attraction) => _savedIds.contains(attraction.id))
+    return _savedIds
+        .map((id) => _knownAttractions[id])
+        .whereType<Attraction>()
         .toList();
   }
 
