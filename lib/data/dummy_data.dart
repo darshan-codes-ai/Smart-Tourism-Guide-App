@@ -655,6 +655,10 @@ class SavedPlacesStore extends ChangeNotifier {
   void registerAttractions(Iterable<Attraction> attractions) {
     for (final attraction in attractions) {
       _knownAttractions[attraction.id] = attraction;
+      if (attraction.id.toLowerCase() == 'charminar') {
+        _knownAttractions['Charminar'] = attraction;
+        _knownAttractions['charminar'] = attraction;
+      }
       if (_currentUid == null && attraction.isSaved) {
         _savedIds.add(attraction.id);
       }
@@ -730,6 +734,10 @@ class SavedPlacesStore extends ChangeNotifier {
             );
             if (attraction != null) {
               _knownAttractions[id] = attraction;
+              if (id.toLowerCase() == 'charminar') {
+                _knownAttractions['Charminar'] = attraction;
+                _knownAttractions['charminar'] = attraction;
+              }
             }
           } catch (e) {
             debugPrint('Error resolving attraction $id: $e');
