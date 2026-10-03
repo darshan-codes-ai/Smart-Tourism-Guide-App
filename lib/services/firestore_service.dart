@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -12,6 +14,14 @@ class FirestoreService {
   /// Optional in-memory test favorites store for unit testing without live Firebase.
   @visibleForTesting
   static Map<String, Set<String>>? testFavorites;
+
+  /// Optional stream controller for testing real-time favorite updates.
+  @visibleForTesting
+  static StreamController<Set<String>>? testFavoritesController;
+
+  /// Optional stream generator override for testing watchFavoriteIds.
+  @visibleForTesting
+  static Stream<Set<String>> Function(String uid)? testWatchFavoriteIds;
 
   FirebaseFirestore get _firestore => FirebaseFirestore.instance;
 
@@ -89,6 +99,12 @@ class FirestoreService {
 
   /// Streams the set of attraction IDs saved by the user with [uid].
   Stream<Set<String>> watchFavoriteIds(String uid) {
+    if (testWatchFavoriteIds != null) {
+      return testWatchFavoriteIds!(uid);
+    }
+    if (testFavoritesController != null) {
+      return testFavoritesController!.stream;
+    }
     if (testFavorites != null) {
       return Stream.value(
         Set<String>.from(testFavorites![uid] ?? const <String>{}),

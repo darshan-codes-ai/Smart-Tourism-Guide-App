@@ -3,9 +3,9 @@ class AppConstants {
 
   static const String appName = 'TourMate';
   static const String tagline = 'Discover. Explore. Experience.';
-  static const String defaultCity = 'Hyderabad';
-  static const String dummyUserName = 'Aarav Sharma';
-  static const String dummyUserEmail = 'aarav.sharma@email.com';
+  static const String globalScope = 'Worldwide';
+  static const String dummyUserName = 'Alex Traveler';
+  static const String dummyUserEmail = 'alex.traveler@email.com';
 
   static const Duration splashDelay = Duration(seconds: 2);
 
@@ -20,3 +20,4 @@ class AppConstants {
     'Shopping',
   ];
 }
+

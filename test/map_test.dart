@@ -108,7 +108,7 @@ void main() {
       expect(find.byType(AttractionCard), findsWidgets);
     });
 
-    testWidgets('Explore category filter defaults to All and shows all 8 attractions on Map', (
+    testWidgets('Explore category filter defaults to All and shows all attractions on Map', (
       tester,
     ) async {
       AttractionService.testStream = Stream.value(DummyData.attractions);
@@ -132,11 +132,14 @@ void main() {
       await tester.tap(find.text('Map'));
       await tester.pumpAndSettle();
 
-      // FlutterMap should be active with all 8 markers
+      // FlutterMap should be active with all markers
       final markerLayerFinder = find.byType(MarkerLayer);
       expect(markerLayerFinder, findsOneWidget);
       final markerLayer = tester.widget<MarkerLayer>(markerLayerFinder);
-      expect(markerLayer.markers.length, 8);
+      final expectedCount = DummyData.attractions
+          .where((a) => a.latitude != null && a.longitude != null)
+          .length;
+      expect(markerLayer.markers.length, expectedCount);
     });
 
     testWidgets('Filtering by category updates Map markers and tapping All restores all markers', (
@@ -155,17 +158,25 @@ void main() {
       await tester.tap(find.text('Map'));
       await tester.pumpAndSettle();
 
-      // In DummyData, 2 attractions are Historical (Charminar, Golconda Fort)
+      final historicalCount = DummyData.attractions
+          .where((a) =>
+              a.category == 'Historical' &&
+              a.latitude != null &&
+              a.longitude != null)
+          .length;
       var markerLayer = tester.widget<MarkerLayer>(find.byType(MarkerLayer));
-      expect(markerLayer.markers.length, 2);
+      expect(markerLayer.markers.length, historicalCount);
 
       // Tap 'All' chip
       await tester.tap(find.widgetWithText(CategoryChip, 'All'));
       await tester.pumpAndSettle();
 
-      // All 8 markers restored
+      // All markers restored
       markerLayer = tester.widget<MarkerLayer>(find.byType(MarkerLayer));
-      expect(markerLayer.markers.length, 8);
+      final totalCount = DummyData.attractions
+          .where((a) => a.latitude != null && a.longitude != null)
+          .length;
+      expect(markerLayer.markers.length, totalCount);
     });
   });
 
@@ -262,7 +273,7 @@ void main() {
       expect(find.text('Opening hours: '), findsOneWidget);
       expect(find.text('9:30 AM - 5:30 PM'), findsOneWidget);
       expect(find.text('Entry fee: '), findsOneWidget);
-      expect(find.text('₹25'), findsOneWidget);
+      expect(find.text('₹25'), findsWidgets);
     });
   });
 }

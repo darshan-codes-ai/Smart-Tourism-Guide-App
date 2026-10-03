@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
@@ -30,6 +31,7 @@ class AppRouter {
     initialLocation: splash,
     refreshListenable: _authRefresh,
     redirect: (context, state) {
+      if (Firebase.apps.isEmpty) return null;
       final signedIn = AuthService.instance.currentUser != null;
       final location = state.uri.path;
       final onSplash = location == splash;

@@ -28,7 +28,8 @@ class MapScreen extends StatefulWidget {
   /// Whether to display a top AppBar (useful when opened as a dedicated route).
   final bool showAppBar;
 
-  static const LatLng hyderabadFallback = LatLng(17.3850, 78.4867);
+  static const LatLng worldCenter = LatLng(20.0, 0.0);
+  static const LatLng hyderabadFallback = worldCenter;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -63,33 +64,6 @@ class _MapScreenState extends State<MapScreen> {
         14.5,
       );
     }
-  }
-
-  LatLng _computeInitialCenter(List<Attraction> list) {
-    if (widget.initialSelectedAttraction != null &&
-        widget.initialSelectedAttraction!.latitude != null &&
-        widget.initialSelectedAttraction!.longitude != null) {
-      return LatLng(
-        widget.initialSelectedAttraction!.latitude!,
-        widget.initialSelectedAttraction!.longitude!,
-      );
-    }
-
-    final valid = list
-        .where((a) => a.latitude != null && a.longitude != null)
-        .toList();
-
-    if (valid.isEmpty) {
-      return MapScreen.hyderabadFallback;
-    }
-
-    double sumLat = 0.0;
-    double sumLng = 0.0;
-    for (final a in valid) {
-      sumLat += a.latitude!;
-      sumLng += a.longitude!;
-    }
-    return LatLng(sumLat / valid.length, sumLng / valid.length);
   }
 
   Future<void> _getCurrentLocation() async {
@@ -208,17 +182,18 @@ class _MapScreenState extends State<MapScreen> {
     ThemeData theme,
     List<Attraction> attractions,
   ) {
-    final initialCenter = _computeInitialCenter(attractions);
-
-    // Build markers for valid coordinates only
+    final validPoints = <LatLng>[];
     final markers = <Marker>[];
 
     for (final attraction in attractions) {
       if (attraction.latitude != null && attraction.longitude != null) {
+        final point = LatLng(attraction.latitude!, attraction.longitude!);
+        validPoints.add(point);
+
         final isSelected = _selectedAttraction?.id == attraction.id;
         markers.add(
           Marker(
-            point: LatLng(attraction.latitude!, attraction.longitude!),
+            point: point,
             width: isSelected ? 48 : 40,
             height: isSelected ? 48 : 40,
             child: GestureDetector(
@@ -234,6 +209,34 @@ class _MapScreenState extends State<MapScreen> {
           ),
         );
       }
+    }
+
+    // Determine initial camera options
+    LatLng initialCenter;
+    double initialZoom;
+    CameraFit? initialCameraFit;
+
+    if (widget.initialSelectedAttraction?.latitude != null &&
+        widget.initialSelectedAttraction?.longitude != null) {
+      initialCenter = LatLng(
+        widget.initialSelectedAttraction!.latitude!,
+        widget.initialSelectedAttraction!.longitude!,
+      );
+      initialZoom = 14.5;
+    } else if (validPoints.isEmpty) {
+      initialCenter = MapScreen.worldCenter;
+      initialZoom = 2.0;
+    } else if (validPoints.length == 1) {
+      initialCenter = validPoints.first;
+      initialZoom = 14.5;
+    } else {
+      initialCenter = validPoints.first;
+      initialZoom = 3.0;
+      initialCameraFit = CameraFit.bounds(
+        bounds: LatLngBounds.fromPoints(validPoints),
+        padding: const EdgeInsets.all(48),
+        maxZoom: 15.0,
+      );
     }
 
     // User location marker
@@ -267,8 +270,9 @@ class _MapScreenState extends State<MapScreen> {
           mapController: _mapController,
           options: MapOptions(
             initialCenter: initialCenter,
-            initialZoom: 12.5,
-            minZoom: 4.0,
+            initialZoom: initialZoom,
+            initialCameraFit: initialCameraFit,
+            minZoom: 1.5,
             maxZoom: 18.0,
             interactionOptions: const InteractionOptions(
               flags: InteractiveFlag.all,
@@ -460,7 +464,7 @@ class _MapAttractionPreviewCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${attraction.category} · ${attraction.location}',
+                      '${attraction.category} · ${attraction.displayLocation}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(

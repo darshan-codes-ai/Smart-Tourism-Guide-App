@@ -71,7 +71,9 @@ class _HorizontalCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      attraction.category,
+                      '${attraction.category} · ${attraction.displayLocation}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.primary,
                         fontWeight: FontWeight.w600,
@@ -141,7 +143,7 @@ class _VerticalCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      attraction.location,
+                      attraction.displayLocation,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall,
@@ -314,7 +316,7 @@ Future<void> showAttractionDetails(
               ),
               const SizedBox(height: 8),
               Text(
-                '${attraction.category} · ${attraction.location}',
+                '${attraction.category} · ${attraction.displayLocation}',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.primary,
                   fontWeight: FontWeight.w600,
@@ -331,7 +333,7 @@ Future<void> showAttractionDetails(
               _DetailRow(
                 icon: Icons.confirmation_number_outlined,
                 label: 'Entry fee',
-                value: attraction.entryFee,
+                value: attraction.formattedFee,
               ),
               _DetailRow(
                 icon: Icons.star_rounded,

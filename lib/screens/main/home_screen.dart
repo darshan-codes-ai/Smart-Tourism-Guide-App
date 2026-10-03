@@ -52,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
             }
 
             final recommended = allAttractions.take(4).toList();
-            final nearby = _selectedCategory == null
+            final displayed = _selectedCategory == null
                 ? allAttractions
                 : allAttractions
                       .where((item) => item.category == _selectedCategory)
@@ -91,13 +91,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Row(
                                     children: [
                                       Icon(
-                                        Icons.location_on_rounded,
+                                        Icons.public_rounded,
                                         size: 18,
                                         color: theme.colorScheme.primary,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        AppConstants.defaultCity,
+                                        AppConstants.globalScope,
                                         style: theme.textTheme.bodyMedium
                                             ?.copyWith(
                                               fontWeight: FontWeight.w600,
@@ -127,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               radius: 22,
                               backgroundColor: Color(0xFF176B87),
                               child: Text(
-                                'AS',
+                                'AT',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
@@ -139,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 20),
                         const TextField(
                           decoration: InputDecoration(
-                            hintText: 'Search places, attractions...',
+                            hintText: 'Search destinations, places...',
                             prefixIcon: Icon(Icons.search_rounded),
                           ),
                         ),
@@ -279,19 +279,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
                     sliver: SliverToBoxAdapter(
                       child: SectionHeader(
-                        title: 'Nearby',
+                        title: 'Top Attractions Worldwide',
                         onAction: widget.onSeeAllNearby,
                       ),
                     ),
                   ),
-                  if (nearby.isEmpty)
+                  if (displayed.isEmpty)
                     SliverPadding(
                       padding: const EdgeInsets.all(32),
                       sliver: SliverToBoxAdapter(
                         child: Center(
                           child: Text(
                             _selectedCategory == null
-                                ? 'No nearby attractions found.'
+                                ? 'No attractions found.'
                                 : 'No attractions found for "$_selectedCategory".',
                             style: theme.textTheme.bodyMedium,
                           ),
@@ -302,10 +302,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     SliverPadding(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                       sliver: SliverList.separated(
-                        itemCount: nearby.length,
+                        itemCount: displayed.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
-                          return AttractionCard(attraction: nearby[index]);
+                          return AttractionCard(attraction: displayed[index]);
                         },
                       ),
                     ),

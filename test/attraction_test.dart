@@ -50,7 +50,7 @@ void main() {
       expect(attraction.description, '');
       expect(attraction.imageUrl, '');
       expect(attraction.rating, 0.0);
-      expect(attraction.distance, 'Nearby');
+      expect(attraction.distance, '');
       expect(attraction.location, '');
       expect(attraction.openingHours, 'Not available');
       expect(attraction.entryFee, 'Not available');
@@ -65,6 +65,7 @@ void main() {
         'rating': 4, // int instead of double
         'distance': 1.2, // num instead of String
         'entryFee': 25, // num instead of String
+        'currency': 'INR',
         'latitude': '17.3616', // String instead of num
         'longitude': '78.4747',
         'isSaved': 'true', // String instead of bool
@@ -161,7 +162,7 @@ void main() {
         expect(attractions.isNotEmpty, true);
         expect(attractions.length, DummyData.attractions.length);
 
-        final single = await AttractionService.instance.getAttraction('1');
+        final single = await AttractionService.instance.getAttraction('charminar');
         expect(single, isNotNull);
         expect(single!.name, 'Charminar');
 
@@ -178,7 +179,7 @@ void main() {
       );
 
       expect(
-        () => AttractionService.instance.getAttraction('1'),
+        () => AttractionService.instance.getAttraction('charminar'),
         throwsStateError,
       );
     });

@@ -170,7 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Sign in to continue exploring ${AppConstants.defaultCity}.',
+                      'Sign in to continue exploring destinations around the world.',
                       style: theme.textTheme.bodyLarge,
                     ),
                     const SizedBox(height: 32),

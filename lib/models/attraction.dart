@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../core/utils/currency_formatter.dart';
+
 class Attraction {
   const Attraction({
     required this.id,
@@ -8,6 +10,14 @@ class Attraction {
     required this.description,
     required this.imageUrl,
     required this.rating,
+    this.city = '',
+    this.country = '',
+    this.countryCode,
+    this.reviewCount = 0,
+    this.popularity = 0.0,
+    this.currency,
+    this.openingTime,
+    this.closingTime,
     required this.distance,
     required this.location,
     required this.openingHours,
@@ -23,6 +33,14 @@ class Attraction {
   final String description;
   final String imageUrl;
   final double rating;
+  final String city;
+  final String country;
+  final String? countryCode;
+  final int reviewCount;
+  final double popularity;
+  final String? currency;
+  final String? openingTime;
+  final String? closingTime;
   final String distance;
   final String location;
   final String openingHours;
@@ -30,6 +48,33 @@ class Attraction {
   final double? latitude;
   final double? longitude;
   final bool isSaved;
+
+  /// Returns the formatted entry fee with native currency symbol (e.g. '$25', '€29', 'Free').
+  String get formattedFee {
+    final trimmed = entryFee.trim();
+    if (trimmed.isEmpty) return 'Not available';
+    if (trimmed.toLowerCase() == 'free') return 'Free';
+
+    // If already contains a currency symbol or word (e.g. €29, $25, AED 30, Paid dining)
+    final numMatch = RegExp(r'^[\d.]+$').firstMatch(trimmed);
+    if (numMatch != null) {
+      final parsed = double.tryParse(trimmed);
+      return CurrencyFormatter.format(parsed, currency: currency);
+    }
+    return trimmed;
+  }
+
+  /// Returns a clean display location string (e.g. 'Paris, France' or 'Rome, Italy').
+  String get displayLocation {
+    if (city.isNotEmpty && country.isNotEmpty) {
+      return '$city, $country';
+    } else if (city.isNotEmpty) {
+      return city;
+    } else if (country.isNotEmpty) {
+      return country;
+    }
+    return location;
+  }
 
   factory Attraction.fromFirestore(String id, Map<String, dynamic> data) {
     double? lat = _parseDouble(data['latitude'] ?? data['lat']);
@@ -52,6 +97,16 @@ class Attraction {
       location = locationValue?.toString() ?? '';
     }
 
+    final String country = data['country']?.toString() ?? '';
+    final String city = data['city']?.toString() ?? '';
+    final String? countryCode = data['countryCode']?.toString();
+    final String? currency = data['currency']?.toString();
+
+    final int reviewCount = (data['reviewCount'] as num?)?.toInt() ?? 0;
+    final double popularity = (data['popularity'] as num?)?.toDouble() ?? 0.0;
+    final String? openingTime = data['openingTime']?.toString();
+    final String? closingTime = data['closingTime']?.toString();
+
     return Attraction(
       id: id,
       name: data['name']?.toString() ?? 'Unnamed attraction',
@@ -59,10 +114,18 @@ class Attraction {
       description: data['description']?.toString() ?? '',
       imageUrl: data['imageUrl']?.toString() ?? '',
       rating: _parseRating(data['rating']),
+      city: city,
+      country: country,
+      countryCode: countryCode,
+      reviewCount: reviewCount,
+      popularity: popularity,
+      currency: currency,
+      openingTime: openingTime,
+      closingTime: closingTime,
       distance: _parseDistance(data['distance']),
       location: location,
       openingHours: _parseOpeningHours(data['openingHours']),
-      entryFee: _parseEntryFee(data['entryFee']),
+      entryFee: _parseEntryFee(data['entryFee'], currency: currency),
       latitude: lat,
       longitude: lng,
       isSaved: _parseBool(data['isSaved']),
@@ -76,10 +139,10 @@ class Attraction {
   }
 
   static String _parseDistance(dynamic value) {
-    if (value == null) return 'Nearby';
+    if (value == null) return '';
     if (value is String) {
       final trimmed = value.trim();
-      return trimmed.isEmpty ? 'Nearby' : trimmed;
+      return trimmed;
     }
     if (value is num) {
       return '$value km';
@@ -96,14 +159,14 @@ class Attraction {
     return value.toString();
   }
 
-  static String _parseEntryFee(dynamic value) {
+  static String _parseEntryFee(dynamic value, {String? currency}) {
     if (value == null) return 'Not available';
     if (value is String) {
       final trimmed = value.trim();
       return trimmed.isEmpty ? 'Not available' : trimmed;
     }
     if (value is num) {
-      return value == 0 ? 'Free' : '₹$value';
+      return CurrencyFormatter.format(value, currency: currency);
     }
     return value.toString();
   }
@@ -128,9 +191,17 @@ class Attraction {
       'description': description,
       'imageUrl': imageUrl,
       'rating': rating,
+      'reviewCount': reviewCount,
+      'popularity': popularity,
+      'city': city,
+      'country': country,
+      if (countryCode != null) 'countryCode': countryCode,
+      if (currency != null) 'currency': currency,
       'distance': distance,
       'location': location,
       'openingHours': openingHours,
+      if (openingTime != null) 'openingTime': openingTime,
+      if (closingTime != null) 'closingTime': closingTime,
       'entryFee': entryFee,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
@@ -145,6 +216,14 @@ class Attraction {
     String? description,
     String? imageUrl,
     double? rating,
+    String? city,
+    String? country,
+    String? countryCode,
+    int? reviewCount,
+    double? popularity,
+    String? currency,
+    String? openingTime,
+    String? closingTime,
     String? distance,
     String? location,
     String? openingHours,
@@ -160,6 +239,14 @@ class Attraction {
       description: description ?? this.description,
       imageUrl: imageUrl ?? this.imageUrl,
       rating: rating ?? this.rating,
+      city: city ?? this.city,
+      country: country ?? this.country,
+      countryCode: countryCode ?? this.countryCode,
+      reviewCount: reviewCount ?? this.reviewCount,
+      popularity: popularity ?? this.popularity,
+      currency: currency ?? this.currency,
+      openingTime: openingTime ?? this.openingTime,
+      closingTime: closingTime ?? this.closingTime,
       distance: distance ?? this.distance,
       location: location ?? this.location,
       openingHours: openingHours ?? this.openingHours,

@@ -21,10 +21,33 @@ class ExploreScreen extends StatefulWidget {
 
 class _ExploreScreenState extends State<ExploreScreen> {
   final _searchController = TextEditingController();
-  String? _selectedCategory;
+  String _selectedCategory = 'All';
+  String _selectedDestination = 'All Destinations';
   ExploreSort _sort = ExploreSort.rating;
   ExploreViewMode _viewMode = ExploreViewMode.list;
   int _retryKey = 0;
+
+  static const List<String> _categories = [
+    'All',
+    ...AppConstants.categories,
+  ];
+
+  static const List<String> _destinations = [
+    'All Destinations',
+    'France',
+    'Italy',
+    'Japan',
+    'United States',
+    'United Kingdom',
+    'United Arab Emirates',
+    'India',
+    'Australia',
+    'Brazil',
+    'Egypt',
+    'Spain',
+    'Singapore',
+    'Turkey',
+  ];
 
   @override
   void dispose() {
@@ -44,13 +67,26 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final query = _searchController.text.trim().toLowerCase();
     final results = source.where((attraction) {
       final matchesCategory =
-          _selectedCategory == null || attraction.category == _selectedCategory;
+          _selectedCategory == 'All' ||
+          attraction.category == _selectedCategory;
+
+      final matchesDestination =
+          _selectedDestination == 'All Destinations' ||
+          attraction.country.toLowerCase() ==
+              _selectedDestination.toLowerCase() ||
+          attraction.location.toLowerCase().contains(
+                _selectedDestination.toLowerCase(),
+              );
+
       final matchesQuery =
           query.isEmpty ||
           attraction.name.toLowerCase().contains(query) ||
           attraction.category.toLowerCase().contains(query) ||
+          attraction.city.toLowerCase().contains(query) ||
+          attraction.country.toLowerCase().contains(query) ||
           attraction.location.toLowerCase().contains(query);
-      return matchesCategory && matchesQuery;
+
+      return matchesCategory && matchesDestination && matchesQuery;
     }).toList();
 
     results.sort((a, b) {
@@ -95,7 +131,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Search, filter, and browse places across the city.',
+                  'Explore amazing places and destinations around the world.',
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 16),
@@ -103,7 +139,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   controller: _searchController,
                   onChanged: (_) => setState(() {}),
                   decoration: const InputDecoration(
-                    hintText: 'Search places, attractions...',
+                    hintText: 'Search destinations, places, cities...',
                     prefixIcon: Icon(Icons.search_rounded),
                   ),
                 ),
@@ -115,20 +151,24 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         height: 52,
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
-                          itemCount: AppConstants.categories.length,
+                          itemCount: _categories.length,
                           separatorBuilder: (_, _) => const SizedBox(width: 8),
                           itemBuilder: (context, index) {
-                            final category = AppConstants.categories[index];
+                            final category = _categories[index];
                             return CategoryChip(
                               label: category,
                               icon: CategoryChip.iconFor(category),
                               selected: _selectedCategory == category,
                               onTap: () {
                                 setState(() {
-                                  _selectedCategory =
-                                      _selectedCategory == category
-                                      ? null
-                                      : category;
+                                  if (category == 'All') {
+                                    _selectedCategory = 'All';
+                                  } else {
+                                    _selectedCategory =
+                                        _selectedCategory == category
+                                            ? 'All'
+                                            : category;
+                                  }
                                 });
                               },
                             );
@@ -143,6 +183,49 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       icon: const Icon(Icons.tune_rounded),
                     ),
                   ],
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 38,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _destinations.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final dest = _destinations[index];
+                      final isSelected = _selectedDestination == dest;
+                      return FilterChip(
+                        label: Text(dest),
+                        selected: isSelected,
+                        showCheckmark: false,
+                        onSelected: (_) {
+                          setState(() {
+                            _selectedDestination = isSelected
+                                ? 'All Destinations'
+                                : dest;
+                          });
+                        },
+                        selectedColor: theme.colorScheme.primaryContainer,
+                        labelStyle: TextStyle(
+                          fontSize: 12,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: isSelected
+                              ? theme.colorScheme.onPrimaryContainer
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                        side: BorderSide(
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : const Color(0xFFE4EBEE),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
@@ -300,6 +383,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Future<void> _showSortSheet() async {
     final selected = await showModalBottomSheet<ExploreSort>(
       context: context,
+      showDragHandle: true,
       builder: (context) {
         return SafeArea(
           child: Column(
@@ -307,25 +391,27 @@ class _ExploreScreenState extends State<ExploreScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.star_rounded),
-                title: const Text('Sort by rating'),
+                title: const Text('Highest Rated'),
                 trailing: _sort == ExploreSort.rating
                     ? const Icon(Icons.check_rounded)
                     : null,
-                onTap: () => Navigator.pop(context, ExploreSort.rating),
+                onTap: () => Navigator.of(context).pop(ExploreSort.rating),
               ),
               ListTile(
                 leading: const Icon(Icons.near_me_rounded),
-                title: const Text('Sort by distance'),
+                title: const Text('Nearest First'),
                 trailing: _sort == ExploreSort.distance
                     ? const Icon(Icons.check_rounded)
                     : null,
-                onTap: () => Navigator.pop(context, ExploreSort.distance),
+                onTap: () => Navigator.of(context).pop(ExploreSort.distance),
               ),
+              const SizedBox(height: 12),
             ],
           ),
         );
       },
     );
+
     if (selected != null) {
       setState(() => _sort = selected);
     }
@@ -343,91 +429,28 @@ class _ExploreViewToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8EFF2),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.all(3),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ToggleButton(
-            label: 'List',
-            icon: Icons.view_list_rounded,
-            isSelected: selectedView == ExploreViewMode.list,
-            onTap: () => onChanged(ExploreViewMode.list),
-          ),
-          _ToggleButton(
-            label: 'Map',
-            icon: Icons.map_rounded,
-            isSelected: selectedView == ExploreViewMode.map,
-            onTap: () => onChanged(ExploreViewMode.map),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ToggleButton extends StatelessWidget {
-  const _ToggleButton({
-    required this.label,
-    required this.icon,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(9),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: isSelected ? theme.colorScheme.surface : Colors.transparent,
-          borderRadius: BorderRadius.circular(9),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ]
-              : null,
+    return SegmentedButton<ExploreViewMode>(
+      segments: const [
+        ButtonSegment<ExploreViewMode>(
+          value: ExploreViewMode.list,
+          label: Text('List'),
+          icon: Icon(Icons.format_list_bulleted_rounded, size: 18),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected
-                  ? theme.colorScheme.primary
-                  : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected
-                    ? theme.colorScheme.primary
-                    : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
-              ),
-            ),
-          ],
+        ButtonSegment<ExploreViewMode>(
+          value: ExploreViewMode.map,
+          label: Text('Map'),
+          icon: Icon(Icons.map_rounded, size: 18),
         ),
+      ],
+      selected: {selectedView},
+      onSelectionChanged: (newSelection) {
+        if (newSelection.isNotEmpty) {
+          onChanged(newSelection.first);
+        }
+      },
+      style: const ButtonStyle(
+        visualDensity: VisualDensity.compact,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );
   }
