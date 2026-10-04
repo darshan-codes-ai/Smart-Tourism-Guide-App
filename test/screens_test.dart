@@ -120,7 +120,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Recommended'), findsOneWidget);
-      expect(find.text('Nearby'), findsOneWidget);
+      expect(find.text('Top Attractions Worldwide'), findsOneWidget);
       expect(find.text('Charminar'), findsWidgets);
       expect(find.text('Golconda Fort'), findsWidgets);
     });

@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/constants/app_constants.dart';
 import '../../core/router/app_router.dart';
 import '../../models/app_user.dart';
 import '../../services/auth_service.dart';
@@ -96,8 +95,9 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           TextButton(
             onPressed: () {
-              if (key.currentState?.validate() ?? false)
+              if (key.currentState?.validate() ?? false) {
                 Navigator.pop(context, controller.text.trim());
+              }
             },
             child: const Text('Send Link'),
           ),
@@ -119,8 +119,9 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _validateEmail(String? value) {
     final email = value?.trim() ?? '';
     if (email.isEmpty) return 'Please enter your email';
-    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email))
+    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
       return 'Please enter a valid email address.';
+    }
     return null;
   }
 
@@ -136,9 +137,10 @@ class _LoginScreenState extends State<LoginScreen> {
   );
 
   void _showMessage(String message) {
-    if (mounted)
+    if (mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   @override
@@ -324,8 +326,9 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     final id = _verificationId;
     final code = _codeController.text.trim();
     if (id == null) return _message('Send the verification code first.');
-    if (code.length < 6)
+    if (code.length < 6) {
       return _message('Enter the 6-digit verification code.');
+    }
     setState(() => _loading = true);
     try {
       final credential = await AuthService.instance.signInWithPhoneCode(
@@ -364,9 +367,10 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   }
 
   void _message(String message) {
-    if (mounted)
+    if (mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   @override

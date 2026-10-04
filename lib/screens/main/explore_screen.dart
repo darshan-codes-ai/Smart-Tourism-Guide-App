@@ -21,6 +21,7 @@ class ExploreScreen extends StatefulWidget {
 
 class _ExploreScreenState extends State<ExploreScreen> {
   final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
   String _selectedCategory = 'All';
   String _selectedDestination = 'All Destinations';
   ExploreSort _sort = ExploreSort.rating;
@@ -51,6 +52,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override
   void dispose() {
+    _searchFocusNode.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -123,9 +125,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    _ExploreViewToggle(
-                      selectedView: _viewMode,
-                      onChanged: (mode) => setState(() => _viewMode = mode),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.search_rounded),
+                          tooltip: 'Search',
+                          onPressed: () => _searchFocusNode.requestFocus(),
+                        ),
+                        const SizedBox(width: 4),
+                        _ExploreViewToggle(
+                          selectedView: _viewMode,
+                          onChanged: (mode) => setState(() => _viewMode = mode),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -137,10 +150,25 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: _searchController,
+                  focusNode: _searchFocusNode,
                   onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Search destinations, places, cities...',
-                    prefixIcon: Icon(Icons.search_rounded),
+                    prefixIcon: IconButton(
+                      icon: const Icon(Icons.search_rounded),
+                      tooltip: 'Search',
+                      onPressed: () => _searchFocusNode.requestFocus(),
+                    ),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded),
+                            tooltip: 'Clear search',
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {});
+                            },
+                          )
+                        : null,
                   ),
                 ),
                 const SizedBox(height: 12),

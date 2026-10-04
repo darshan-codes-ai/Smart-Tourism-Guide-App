@@ -34,18 +34,27 @@ class AttractionService {
   /// Streams real-time attraction documents from `/attractions`.
   /// Converts each document using [Attraction.fromFirestore].
   /// Sorts by rating descending by default.
-  Stream<List<Attraction>> watchAttractions({String? category}) {
+  Stream<List<Attraction>> watchAttractions({
+    String? category,
+    String? country,
+    int? limit,
+  }) {
     if (testStream != null) {
       return testStream!;
     }
     final collection = _attractionsRef;
     if (collection == null) {
       if (devFallbackEnabled) {
-        final list = category == null
-            ? DummyData.attractions
-            : DummyData.attractions
-                  .where((a) => a.category == category)
-                  .toList();
+        var list = DummyData.attractions;
+        if (category != null && category.isNotEmpty) {
+          list = list.where((a) => a.category == category).toList();
+        }
+        if (country != null && country.isNotEmpty) {
+          list = list.where((a) => a.country == country).toList();
+        }
+        if (limit != null && limit > 0) {
+          list = list.take(limit).toList();
+        }
         return Stream.value(list);
       }
       return Stream.error(
@@ -56,6 +65,13 @@ class AttractionService {
     Query<Map<String, dynamic>> query = collection;
     if (category != null && category.isNotEmpty) {
       query = query.where('category', isEqualTo: category);
+    }
+    if (country != null && country.isNotEmpty) {
+      query = query.where('country', isEqualTo: country);
+    }
+    query = query.orderBy('rating', descending: true);
+    if (limit != null && limit > 0) {
+      query = query.limit(limit);
     }
 
     return query.snapshots().map((snapshot) {
@@ -69,15 +85,25 @@ class AttractionService {
 
   /// Fetches a one-time list of attractions from `/attractions`.
   /// Returns an empty list when Firestore has no documents.
-  Future<List<Attraction>> getAttractions({String? category}) async {
+  Future<List<Attraction>> getAttractions({
+    String? category,
+    String? country,
+    int? limit,
+  }) async {
     final collection = _attractionsRef;
     if (collection == null) {
       if (devFallbackEnabled) {
-        return category == null
-            ? DummyData.attractions
-            : DummyData.attractions
-                  .where((a) => a.category == category)
-                  .toList();
+        var list = DummyData.attractions;
+        if (category != null && category.isNotEmpty) {
+          list = list.where((a) => a.category == category).toList();
+        }
+        if (country != null && country.isNotEmpty) {
+          list = list.where((a) => a.country == country).toList();
+        }
+        if (limit != null && limit > 0) {
+          list = list.take(limit).toList();
+        }
+        return list;
       }
       throw StateError(
         'Firebase is not initialized. Cannot fetch attractions.',
@@ -87,6 +113,13 @@ class AttractionService {
     Query<Map<String, dynamic>> query = collection;
     if (category != null && category.isNotEmpty) {
       query = query.where('category', isEqualTo: category);
+    }
+    if (country != null && country.isNotEmpty) {
+      query = query.where('country', isEqualTo: country);
+    }
+    query = query.orderBy('rating', descending: true);
+    if (limit != null && limit > 0) {
+      query = query.limit(limit);
     }
 
     final snapshot = await query.get();
@@ -107,7 +140,12 @@ class AttractionService {
     if (collection == null) {
       if (devFallbackEnabled) {
         try {
-          return DummyData.attractions.firstWhere((a) => a.id == id);
+          return DummyData.attractions.firstWhere(
+            (a) =>
+                a.id == id ||
+                (id.toLowerCase() == 'charminar' &&
+                    a.id.toLowerCase() == 'charminar'),
+          );
         } catch (_) {
           return null;
         }
@@ -117,11 +155,61 @@ class AttractionService {
       );
     }
 
-    final snapshot = await collection.doc(id).get();
-    final data = snapshot.data();
+    var snapshot = await collection.doc(id).get();
+    var data = snapshot.data();
+    if ((!snapshot.exists || data == null) && id.toLowerCase() == 'charminar') {
+      snapshot = await collection.doc('Charminar').get();
+      data = snapshot.data();
+    }
     if (!snapshot.exists || data == null) {
       return null;
     }
     return Attraction.fromFirestore(snapshot.id, data);
+  }
+
+  /// Fetches a paginated page of attractions with optional filters.
+  Future<List<Attraction>> getAttractionsPage({
+    String? category,
+    String? country,
+    int limit = 20,
+    DocumentSnapshot? startAfterDoc,
+  }) async {
+    final collection = _attractionsRef;
+    if (collection == null) {
+      if (devFallbackEnabled) {
+        var list = DummyData.attractions;
+        if (category != null && category.isNotEmpty) {
+          list = list.where((a) => a.category == category).toList();
+        }
+        if (country != null && country.isNotEmpty) {
+          list = list.where((a) => a.country == country).toList();
+        }
+        if (limit > 0) {
+          list = list.take(limit).toList();
+        }
+        return list;
+      }
+      throw StateError(
+        'Firebase is not initialized. Cannot fetch attractions page.',
+      );
+    }
+
+    Query<Map<String, dynamic>> query = collection;
+    if (category != null && category.isNotEmpty) {
+      query = query.where('category', isEqualTo: category);
+    }
+    if (country != null && country.isNotEmpty) {
+      query = query.where('country', isEqualTo: country);
+    }
+    query = query.orderBy('rating', descending: true);
+    if (startAfterDoc != null) {
+      query = query.startAfterDocument(startAfterDoc);
+    }
+    query = query.limit(limit);
+
+    final snapshot = await query.get();
+    return snapshot.docs
+        .map((doc) => Attraction.fromFirestore(doc.id, doc.data()))
+        .toList();
   }
 }

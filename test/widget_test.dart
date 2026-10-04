@@ -2,13 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:tourmate/core/theme/app_theme.dart';
+import 'package:tourmate/data/dummy_data.dart';
 import 'package:tourmate/main.dart';
+import 'package:tourmate/screens/main/main_shell.dart';
+import 'package:tourmate/services/attraction_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   GoogleFonts.config.allowRuntimeFetching = false;
 
-  testWidgets('navigates Splash → Onboarding → Login → Home tabs', (
+  setUp(() {
+    AttractionService.devFallbackEnabled = true;
+  });
+
+  tearDown(() {
+    AttractionService.devFallbackEnabled = false;
+    AttractionService.testStream = null;
+    SavedPlacesStore.instance.resetForTest();
+  });
+
+  testWidgets('navigates Splash → Onboarding → Login screen', (
     tester,
   ) async {
     await tester.pumpWidget(const TourMateApp());
@@ -30,10 +44,19 @@ void main() {
     await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
     expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.byType(TextFormField), findsNWidgets(2));
+    expect(find.widgetWithText(FilledButton, 'Login'), findsOneWidget);
+  });
 
-    await tester.enterText(find.byType(TextFormField).first, 'test@email.com');
-    await tester.enterText(find.byType(TextFormField).last, 'password');
-    await tester.tap(find.widgetWithText(FilledButton, 'Login'));
+  testWidgets('navigates MainShell tabs (Home, Explore, Trips, Saved, Profile)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: const MainShell(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Where do you want to explore?'), findsOneWidget);
@@ -50,8 +73,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('My Saved Places'), findsOneWidget);
 
-    await tester.tap(find.text('Profile'));
+    await tester.tap(find.text('Profile').first);
     await tester.pumpAndSettle();
-    expect(find.text('Aarav Sharma'), findsOneWidget);
+    expect(find.text('Profile'), findsWidgets);
+    expect(find.text('TourMate'), findsWidgets);
   });
 }

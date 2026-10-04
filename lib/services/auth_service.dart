@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthServiceException implements Exception {
@@ -15,19 +16,31 @@ class AuthService {
 
   static final AuthService instance = AuthService._();
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  FirebaseAuth? get _auth {
+    if (Firebase.apps.isEmpty) return null;
+    return FirebaseAuth.instance;
+  }
 
-  User? get currentUser => _auth.currentUser;
+  GoogleSignIn get _googleSignIn => GoogleSignIn.instance;
 
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  User? get currentUser => _auth?.currentUser;
+
+  Stream<User?> get authStateChanges {
+    final auth = _auth;
+    if (auth == null) return const Stream<User?>.empty();
+    return auth.authStateChanges();
+  }
 
   Future<UserCredential> registerWithEmail({
     required String email,
     required String password,
   }) async {
+    final auth = _auth;
+    if (auth == null) {
+      throw const AuthServiceException('Firebase is not initialized.');
+    }
     try {
-      return await _auth.createUserWithEmailAndPassword(
+      return await auth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
@@ -44,8 +57,12 @@ class AuthService {
     required String email,
     required String password,
   }) async {
+    final auth = _auth;
+    if (auth == null) {
+      throw const AuthServiceException('Firebase is not initialized.');
+    }
     try {
-      return await _auth.signInWithEmailAndPassword(
+      return await auth.signInWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
@@ -59,6 +76,10 @@ class AuthService {
   }
 
   Future<UserCredential> signInWithGoogle() async {
+    final auth = _auth;
+    if (auth == null) {
+      throw const AuthServiceException('Firebase is not initialized.');
+    }
     try {
       await _googleSignIn.initialize();
       final googleUser = await _googleSignIn.authenticate();
@@ -66,7 +87,7 @@ class AuthService {
       final credential = GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,
       );
-      return await _auth.signInWithCredential(credential);
+      return await auth.signInWithCredential(credential);
     } on FirebaseAuthException catch (error) {
       throw AuthServiceException(_messageForAuthError(error));
     } catch (error) {
@@ -89,8 +110,12 @@ class AuthService {
     required void Function(String verificationId) codeAutoRetrievalTimeout,
     int? forceResendingToken,
   }) async {
+    final auth = _auth;
+    if (auth == null) {
+      throw const AuthServiceException('Firebase is not initialized.');
+    }
     try {
-      await _auth.verifyPhoneNumber(
+      await auth.verifyPhoneNumber(
         phoneNumber: phoneNumber.trim(),
         verificationCompleted: verificationCompleted,
         verificationFailed: verificationFailed,
@@ -111,12 +136,16 @@ class AuthService {
     required String verificationId,
     required String smsCode,
   }) async {
+    final auth = _auth;
+    if (auth == null) {
+      throw const AuthServiceException('Firebase is not initialized.');
+    }
     try {
       final credential = PhoneAuthProvider.credential(
         verificationId: verificationId,
         smsCode: smsCode.trim(),
       );
-      return await _auth.signInWithCredential(credential);
+      return await auth.signInWithCredential(credential);
     } on FirebaseAuthException catch (error) {
       throw AuthServiceException(_messageForAuthError(error));
     } catch (_) {
@@ -127,8 +156,12 @@ class AuthService {
   }
 
   Future<void> sendPasswordResetEmail(String email) async {
+    final auth = _auth;
+    if (auth == null) {
+      throw const AuthServiceException('Firebase is not initialized.');
+    }
     try {
-      await _auth.sendPasswordResetEmail(email: email.trim());
+      await auth.sendPasswordResetEmail(email: email.trim());
     } on FirebaseAuthException catch (error) {
       throw AuthServiceException(_messageForAuthError(error));
     } catch (_) {
@@ -139,8 +172,10 @@ class AuthService {
   }
 
   Future<void> signOut() async {
+    final auth = _auth;
+    if (auth == null) return;
     try {
-      await _auth.signOut();
+      await auth.signOut();
       try {
         await _googleSignIn.signOut();
       } catch (_) {
