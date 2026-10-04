@@ -23,6 +23,29 @@ service cloud.firestore {
     match /attractions/{attractionId} {
       allow read: if true;
       allow write: if false;
+
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow create: if request.auth != null
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.rating is int
+          && request.resource.data.rating >= 1
+          && request.resource.data.rating <= 5
+          && request.resource.data.comment is string
+          && request.resource.data.comment.size() >= 1
+          && request.resource.data.comment.size() <= 2000;
+        allow update: if request.auth != null
+          && resource.data.userId == request.auth.uid
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.rating is int
+          && request.resource.data.rating >= 1
+          && request.resource.data.rating <= 5
+          && request.resource.data.comment is string
+          && request.resource.data.comment.size() >= 1
+          && request.resource.data.comment.size() <= 2000;
+        allow delete: if request.auth != null
+          && resource.data.userId == request.auth.uid;
+      }
     }
   }
 }

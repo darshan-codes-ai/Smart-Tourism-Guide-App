@@ -1,5 +1,5 @@
 // scripts/import_global_attractions.dart
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, prefer_interpolation_to_compose_strings
 //
 // TourMate Global Attraction Database Normalizer & Importer
 // Phase 2: Standalone Administrative Tool
@@ -583,12 +583,8 @@ class GlobalAttractionPipeline {
   }
 }
 
-
 class FirestoreAdminClient {
-  FirestoreAdminClient({
-    required this.projectId,
-    this.batchSize = 400,
-  });
+  FirestoreAdminClient({required this.projectId, this.batchSize = 400});
 
   final String projectId;
   final int batchSize;
@@ -615,9 +611,7 @@ class FirestoreAdminClient {
     );
   }
 
-  Future<void> importAttractions(
-    List<NormalizedAttraction> attractions,
-  ) async {
+  Future<void> importAttractions(List<NormalizedAttraction> attractions) async {
     if (attractions.isEmpty) {
       throw StateError('There are no attractions to import.');
     }
@@ -670,10 +664,7 @@ class FirestoreAdminClient {
     );
 
     request.headers.contentType = ContentType.json;
-    request.headers.set(
-      HttpHeaders.authorizationHeader,
-      'Bearer ' + token,
-    );
+    request.headers.set(HttpHeaders.authorizationHeader, 'Bearer ' + token);
     request.write(jsonEncode({'writes': writes}));
 
     final response = await request.close();
@@ -713,17 +704,13 @@ class FirestoreAdminClient {
 
     if (value is List) {
       return {
-        'arrayValue': {
-          'values': value.map(_firestoreValue).toList(),
-        },
+        'arrayValue': {'values': value.map(_firestoreValue).toList()},
       };
     }
 
     if (value is Map<String, dynamic>) {
       return {
-        'mapValue': {
-          'fields': _firestoreFields(value),
-        },
+        'mapValue': {'fields': _firestoreFields(value)},
       };
     }
 
@@ -756,7 +743,7 @@ Future<void> main(List<String> args) async {
   if (importRecords.length != 829) {
     throw StateError(
       'SAFETY STOP: expected exactly 829 new records after excluding '
-      'Charminar, but found ' +
+              'Charminar, but found ' +
           importRecords.length.toString() +
           '. No Firestore writes were attempted.',
     );
