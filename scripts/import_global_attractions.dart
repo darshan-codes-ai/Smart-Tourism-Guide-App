@@ -574,8 +574,240 @@ class GlobalAttractionPipeline {
   }
 }
 
-void main(List<String> args) {
-  final isDryRun = args.contains('--dry-run') || !args.contains('--import');
+/// Minimal Firestore Admin REST client.
+///
+/// Uses the service-account key supplied through GOOGLE_APPLICATION_CREDENTIALS.
+/// The key itself must never be committed to the repository.
+class FirestoreAdminClient {
+  FirestoreAdminClient(this.serviceAccount);
+
+  final Map<String, dynamic> serviceAccount;
+  String? _accessToken;
+
+  String get projectId =>
+      serviceAccount['project_id']?.toString() ?? 'tourmate-70d03';
+
+  Future<String> _getAccessToken() async {
+    if (_accessToken != null) return _accessToken!;
+
+    final clientEmail = serviceAccount['client_email']?.toString();
+    final privateKey = serviceAccount['private_key']?.toString();
+
+    if (clientEmail == null || clientEmail.isEmpty) {
+      throw Exception('Service account is missing client_email.');
+    }
+    if (privateKey == null || privateKey.isEmpty) {
+      throw Exception('Service account is missing private_key.');
+    }
+
+    final openssl = await _findOpenSsl();
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+    String b64(List<int> bytes) =>
+        base64Url.encode(bytes).replaceAll('=', '');
+
+    final header = b64(utf8.encode(jsonEncode({
+      'alg': 'RS256',
+      'typ': 'JWT',
+    })));
+
+    final payload = b64(utf8.encode(jsonEncode({
+      'iss': clientEmail,
+      'scope': 'https://www.googleapis.com/auth/datastore',
+      'aud': 'https://oauth2.googleapis.com/token',
+      'iat': now,
+      'exp': now + 3600,
+    })));
+
+    final unsignedJwt = '${header}.${payload}';
+
+    final tempKey = File(
+      '${Directory.systemTemp.path}${Platform.pathSeparator}'
+      'tourmate-service-account-${pid}.pem',
+    );
+
+    await tempKey.writeAsString(privateKey);
+
+    try {
+      final signed = await Process.run(
+        openssl,
+        ['dgst', '-sha256', '-sign', tempKey.path],
+        stdoutEncoding: null,
+        stderrEncoding: utf8,
+      );
+
+      if (signed.exitCode != 0) {
+        throw Exception(
+          'OpenSSL RSA signing failed: ${signed.stderr}',
+        );
+      }
+
+      final signature = b64(signed.stdout as List<int>);
+      final assertion = '${unsignedJwt}.${signature}';
+
+      final client = HttpClient();
+      try {
+        final request = await client.postUrl(
+          Uri.parse('https://oauth2.googleapis.com/token'),
+        );
+
+        request.headers.contentType =
+            ContentType('application', 'x-www-form-urlencoded');
+
+        request.write(
+          'grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer'
+          '&assertion=${Uri.encodeComponent(assertion)}',
+        );
+
+        final response = await request.close();
+        final body = await response.transform(utf8.decoder).join();
+
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          throw Exception(
+            'Google OAuth token request failed '
+            '(${response.statusCode}): ${body}',
+          );
+        }
+
+        final data = jsonDecode(body) as Map<String, dynamic>;
+        final token = data['access_token']?.toString();
+
+        if (token == null || token.isEmpty) {
+          throw Exception(
+            'Google OAuth response did not contain access_token.',
+          );
+        }
+
+        _accessToken = token;
+        return token;
+      } finally {
+        client.close(force: true);
+      }
+    } finally {
+      if (await tempKey.exists()) {
+        await tempKey.delete();
+      }
+    }
+  }
+
+  Future<String> _findOpenSsl() async {
+    final candidates = <String>[
+      'openssl',
+      r'C:\Program Files\Git\usr\bin\openssl.exe',
+      r'C:\Program Files\OpenSSL-Win64\bin\openssl.exe',
+      r'C:\Program Files\OpenSSL\bin\openssl.exe',
+    ];
+
+    for (final candidate in candidates) {
+      try {
+        final result = await Process.run(
+          candidate,
+          ['version'],
+          runInShell: candidate == 'openssl',
+        );
+        if (result.exitCode == 0) return candidate;
+      } catch (_) {}
+    }
+
+    throw Exception(
+      'OpenSSL was not found. Install OpenSSL or Git for Windows, '
+      'then ensure openssl.exe is available.',
+    );
+  }
+
+  Map<String, dynamic> _firestoreValue(dynamic value) {
+    if (value == null) return {'nullValue': null};
+    if (value is bool) return {'booleanValue': value};
+    if (value is int) return {'integerValue': value.toString()};
+    if (value is double) return {'doubleValue': value};
+    if (value is num) return {'doubleValue': value.toDouble()};
+    if (value is String) return {'stringValue': value};
+
+    if (value is List) {
+      return {
+        'arrayValue': {
+          'values': value.map(_firestoreValue).toList(),
+        },
+      };
+    }
+
+    if (value is Map) {
+      return {
+        'mapValue': {
+          'fields': value.map(
+            (key, item) => MapEntry(
+              key.toString(),
+              _firestoreValue(item),
+            ),
+          ),
+        },
+      };
+    }
+
+    return {'stringValue': value.toString()};
+  }
+
+  Future<void> writeBatch(List<Map<String, dynamic>> attractions) async {
+    if (attractions.isEmpty) return;
+    if (attractions.length > 400) {
+      throw ArgumentError('Firestore batches may not exceed 400 operations.');
+    }
+
+    final accessToken = await _getAccessToken();
+
+    final writes = attractions.map((attraction) {
+      final id = attraction['id']?.toString();
+      if (id == null || id.isEmpty) {
+        throw Exception('Attraction is missing a deterministic document ID.');
+      }
+
+      final fields = <String, dynamic>{};
+      for (final entry in attraction.entries) {
+        if (entry.key == 'id') continue;
+        fields[entry.key] = _firestoreValue(entry.value);
+      }
+
+      return {
+        'update': {
+          'name':
+              'projects/${projectId}/databases/(default)/documents/attractions/${id}',
+          'fields': fields,
+        },
+      };
+    }).toList();
+
+    final client = HttpClient();
+    try {
+      final request = await client.postUrl(
+        Uri.parse(
+          'https://firestore.googleapis.com/v1/projects/'
+          '${projectId}/databases/(default)/documents:commit',
+        ),
+      );
+
+      request.headers
+        ..contentType = ContentType.json
+        ..set(HttpHeaders.authorizationHeader, 'Bearer ${accessToken}');
+
+      request.write(jsonEncode({'writes': writes}));
+
+      final response = await request.close();
+      final body = await response.transform(utf8.decoder).join();
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception(
+          'Firestore commit failed (${response.statusCode}): ${body}',
+        );
+      }
+    } finally {
+      client.close(force: true);
+    }
+  }
+}
+
+Future<void> main(List<String> args) async {
+  final isDryRun =
+      args.contains('--dry-run') || !args.contains('--import');
   final isImport = args.contains('--import');
 
   final pipeline = GlobalAttractionPipeline();
@@ -586,16 +818,138 @@ void main(List<String> args) {
     return;
   }
 
-  // Administrative Import Mode (Only reached with --import and explicit approval)
-  print('Administrative import requested. Checking authorization...');
-  final credentialsPath = Platform.environment['GOOGLE_APPLICATION_CREDENTIALS'];
-  if (credentialsPath == null || !File(credentialsPath).existsSync()) {
+  final credentialsPath =
+      Platform.environment['GOOGLE_APPLICATION_CREDENTIALS'];
+
+  if (credentialsPath == null ||
+      credentialsPath.trim().isEmpty ||
+      !File(credentialsPath).existsSync()) {
     print('ERROR: Administrative credentials not found.');
-    print('Production import requires GOOGLE_APPLICATION_CREDENTIALS environment variable.');
+    print(
+      'Production import requires GOOGLE_APPLICATION_CREDENTIALS '
+      'pointing to a valid service-account JSON.',
+    );
     print('No changes were made to Firestore.');
     exit(1);
   }
 
-  print('Batch import ready with safe chunk size of 400 operations.');
-  print('Awaiting user confirmation.');
+  final importRecords = pipeline.processedAttractions
+      .where(
+        (a) =>
+            a.id.toLowerCase() != 'charminar' &&
+            !a.name.toLowerCase().contains('charminar'),
+      )
+      .map((a) => a.toMap())
+      .toList();
+
+  if (importRecords.length != 829) {
+    print(
+      'ERROR: Safety check failed. Expected exactly 829 import records, '
+      'found ${importRecords.length}.',
+    );
+    print('No changes were made to Firestore.');
+    exit(1);
+  }
+
+  print('');
+  print('====================================================');
+  print(' TOURMATE PRODUCTION FIRESTORE IMPORT CONFIRMATION ');
+  print('====================================================');
+  print('');
+  print('Firebase project:                tourmate-70d03');
+  print('Collection:                      attractions');
+  print('New documents:                   829');
+  print('Existing Charminar:              preserved');
+  print('Expected final attraction count: 830');
+  print('Users/favorites:                 untouched');
+  print('Deletes:                         none');
+  print('Batch size:                      <=400 operations');
+  print('');
+  print('====================================================');
+  print('');
+  stdout.write('Type "yes" to proceed with production import: ');
+
+  final confirmation = stdin.readLineSync();
+
+  if (confirmation != 'yes') {
+    print('');
+    print('Import cancelled.');
+    print('ZERO FIRESTORE WRITES PERFORMED.');
+    return;
+  }
+
+  try {
+    final serviceAccount =
+        jsonDecode(await File(credentialsPath).readAsString())
+            as Map<String, dynamic>;
+
+    final projectId =
+        serviceAccount['project_id']?.toString() ?? 'tourmate-70d03';
+
+    if (projectId != 'tourmate-70d03') {
+      throw Exception(
+        'Safety check failed: service-account project_id is "${projectId}", '
+        'expected "tourmate-70d03".',
+      );
+    }
+
+    print('');
+    print('Authenticating with Google Cloud / Firebase Admin...');
+    final firestore = FirestoreAdminClient(serviceAccount);
+    await firestore._getAccessToken();
+    print('Authentication successful.');
+    print('');
+
+    const batchSize = 400;
+    final totalBatches = (importRecords.length / batchSize).ceil();
+    var totalWritten = 0;
+    var completedBatches = 0;
+
+    for (var start = 0; start < importRecords.length; start += batchSize) {
+      final end = math.min(start + batchSize, importRecords.length);
+      final batch = importRecords.sublist(start, end);
+      final batchNumber = completedBatches + 1;
+
+      print(
+        'Writing batch ${batchNumber} of ${totalBatches} '
+        '(${batch.length} operations)...',
+      );
+
+      await firestore.writeBatch(batch);
+
+      totalWritten += batch.length;
+      completedBatches++;
+
+      print(
+        'SUCCESS (Batch ${batchNumber}: ${batch.length} documents written)',
+      );
+    }
+
+    print('');
+    print('====================================================');
+    print(' PRODUCTION IMPORT COMPLETE');
+    print('====================================================');
+    print('');
+    print('Records attempted:            ${importRecords.length}');
+    print('Records successfully written: ${totalWritten}');
+    print('Batches completed:             ${completedBatches}');
+    print('Charminar preserved:           YES');
+    print('Deletes performed:             0');
+    print('Users/favorites modified:      0');
+    print('Expected final count:          830');
+    print('');
+    print('====================================================');
+  } catch (e, stackTrace) {
+    print('');
+    print('====================================================');
+    print(' PRODUCTION IMPORT FAILED');
+    print('====================================================');
+    print('');
+    print('Error: ${e}');
+    print('');
+    print(stackTrace);
+    print('');
+    print('No further batches will be attempted.');
+    exit(1);
+  }
 }
