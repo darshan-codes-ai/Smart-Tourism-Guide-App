@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
+import '../core/router/app_router.dart';
 import '../data/dummy_data.dart';
 import '../models/attraction.dart';
+import '../services/trip_service.dart';
+import 'add_to_trip_sheet.dart';
 import 'category_chip.dart';
+import 'reviews_section.dart';
 
 enum AttractionCardLayout { horizontal, vertical }
 
@@ -344,6 +349,56 @@ Future<void> showAttractionDetails(
                 icon: Icons.near_me_rounded,
                 label: 'Distance',
                 value: attraction.distance,
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    final isAuthenticated = TripService.instance.isAuthenticated;
+                    if (!isAuthenticated) {
+                      showDialog<void>(
+                        context: context,
+                        builder: (dialogCtx) => AlertDialog(
+                          title: const Text('Sign in Required'),
+                          content: const Text(
+                            'Please sign in to add attractions to your trips and itineraries.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(dialogCtx).pop(),
+                              child: const Text('Cancel'),
+                            ),
+                            FilledButton(
+                              onPressed: () {
+                                Navigator.of(dialogCtx).pop();
+                                context.push(AppRouter.login);
+                              },
+                              child: const Text('Sign In'),
+                            ),
+                          ],
+                        ),
+                      );
+                      return;
+                    }
+                    AddToTripSheet.show(context, attraction);
+                  },
+                  icon: const Icon(Icons.add_location_alt_outlined),
+                  label: const Text('Add to Trip'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Divider(height: 1),
+              const SizedBox(height: 16),
+              ReviewsSection(
+                attractionId: attraction.id,
+                attractionName: attraction.name,
               ),
             ],
           ),
