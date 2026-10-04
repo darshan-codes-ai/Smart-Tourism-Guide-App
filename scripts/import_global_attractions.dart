@@ -583,7 +583,157 @@ class GlobalAttractionPipeline {
   }
 }
 
-void main(List<String> args) {
+
+class FirestoreAdminClient {
+  FirestoreAdminClient({
+    required this.projectId,
+    this.batchSize = 400,
+  });
+
+  final String projectId;
+  final int batchSize;
+
+  Future<String> _accessToken() async {
+    final attempts = <List<String>>[
+      ['auth', 'print-access-token'],
+      ['auth', 'application-default', 'print-access-token'],
+    ];
+
+    for (final args in attempts) {
+      try {
+        final result = await Process.run('gcloud', args, runInShell: true);
+        final token = result.stdout.toString().trim();
+        if (result.exitCode == 0 && token.isNotEmpty) {
+          return token;
+        }
+      } catch (_) {}
+    }
+
+    throw StateError(
+      'Google Cloud authentication failed. Install the Google Cloud CLI '
+      'and run "gcloud auth login" before importing.',
+    );
+  }
+
+  Future<void> importAttractions(
+    List<NormalizedAttraction> attractions,
+  ) async {
+    if (attractions.isEmpty) {
+      throw StateError('There are no attractions to import.');
+    }
+    if (batchSize < 1 || batchSize > 400) {
+      throw ArgumentError('Firestore batch size must be between 1 and 400.');
+    }
+
+    final token = await _accessToken();
+    final client = HttpClient();
+
+    try {
+      for (var start = 0; start < attractions.length; start += batchSize) {
+        final end = math.min(start + batchSize, attractions.length);
+        final batch = attractions.sublist(start, end);
+        await _commitBatch(client, token, batch, start, attractions.length);
+      }
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  Future<void> _commitBatch(
+    HttpClient client,
+    String token,
+    List<NormalizedAttraction> attractions,
+    int startIndex,
+    int total,
+  ) async {
+    final writes = attractions.map((attraction) {
+      final documentName =
+          'projects/' +
+          projectId +
+          '/databases/(default)/documents/attractions/' +
+          attraction.id;
+
+      return {
+        'update': {
+          'name': documentName,
+          'fields': _firestoreFields(attraction.toMap()),
+        },
+      };
+    }).toList();
+
+    final request = await client.postUrl(
+      Uri.parse(
+        'https://firestore.googleapis.com/v1/projects/' +
+            projectId +
+            '/databases/(default)/documents:commit',
+      ),
+    );
+
+    request.headers.contentType = ContentType.json;
+    request.headers.set(
+      HttpHeaders.authorizationHeader,
+      'Bearer ' + token,
+    );
+    request.write(jsonEncode({'writes': writes}));
+
+    final response = await request.close();
+    final body = await response.transform(utf8.decoder).join();
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw StateError(
+        'Firestore batch failed (' +
+            response.statusCode.toString() +
+            '): ' +
+            body,
+      );
+    }
+
+    print(
+      'Imported records ' +
+          (startIndex + 1).toString() +
+          '-' +
+          math.min(startIndex + writes.length, total).toString() +
+          ' of ' +
+          total.toString() +
+          '.',
+    );
+  }
+
+  Map<String, dynamic> _firestoreFields(Map<String, dynamic> data) {
+    return data.map((key, value) => MapEntry(key, _firestoreValue(value)));
+  }
+
+  Map<String, dynamic> _firestoreValue(dynamic value) {
+    if (value == null) return {'nullValue': 'NULL_VALUE'};
+    if (value is bool) return {'booleanValue': value};
+    if (value is int) return {'integerValue': value.toString()};
+    if (value is double) return {'doubleValue': value};
+    if (value is num) return {'doubleValue': value.toDouble()};
+    if (value is String) return {'stringValue': value};
+
+    if (value is List) {
+      return {
+        'arrayValue': {
+          'values': value.map(_firestoreValue).toList(),
+        },
+      };
+    }
+
+    if (value is Map<String, dynamic>) {
+      return {
+        'mapValue': {
+          'fields': _firestoreFields(value),
+        },
+      };
+    }
+
+    throw StateError(
+      'Unsupported Firestore value type: ' + value.runtimeType.toString(),
+    );
+  }
+}
+
+Future<void> main(List<String> args) async {
   final isDryRun = args.contains('--dry-run') || !args.contains('--import');
   final isImport = args.contains('--import');
 
@@ -595,19 +745,61 @@ void main(List<String> args) {
     return;
   }
 
-  // Administrative Import Mode (Only reached with --import and explicit approval)
-  print('Administrative import requested. Checking authorization...');
-  final credentialsPath =
-      Platform.environment['GOOGLE_APPLICATION_CREDENTIALS'];
-  if (credentialsPath == null || !File(credentialsPath).existsSync()) {
-    print('ERROR: Administrative credentials not found.');
-    print(
-      'Production import requires GOOGLE_APPLICATION_CREDENTIALS environment variable.',
+  const projectId = 'tourmate-70d03';
+
+  // Charminar is an existing production document and must never be overwritten.
+  final importRecords = pipeline.processedAttractions
+      .where((attraction) => attraction.id != 'Charminar')
+      .toList();
+
+  // Safety invariant for the verified Phase 2 dataset.
+  if (importRecords.length != 829) {
+    throw StateError(
+      'SAFETY STOP: expected exactly 829 new records after excluding '
+      'Charminar, but found ' +
+          importRecords.length.toString() +
+          '. No Firestore writes were attempted.',
     );
-    print('No changes were made to Firestore.');
-    exit(1);
   }
 
-  print('Batch import ready with safe chunk size of 400 operations.');
-  print('Awaiting user confirmation.');
+  print('====================================================');
+  print('  TOURMATE PRODUCTION FIRESTORE IMPORT             ');
+  print('====================================================');
+  print('Project: ' + projectId);
+  print('Records to import: ' + importRecords.length.toString());
+  print('Protected document: Charminar');
+  print('Batch size: 400');
+  print('Writes: upsert only; no deletes');
+  print('Users/favorites collections: untouched');
+  print('');
+  print('Type "yes" to proceed with production import:');
+
+  final confirmation = stdin.readLineSync()?.trim().toLowerCase();
+  if (confirmation != 'yes') {
+    print('Import cancelled. No changes were made to Firestore.');
+    return;
+  }
+
+  print('');
+  print('Authorizing with Google Cloud CLI...');
+
+  final adminClient = FirestoreAdminClient(
+    projectId: projectId,
+    batchSize: 400,
+  );
+
+  await adminClient.importAttractions(importRecords);
+
+  print('');
+  print('====================================================');
+  print('  IMPORT COMPLETE                                   ');
+  print('====================================================');
+  print(
+    'Successfully imported ' +
+        importRecords.length.toString() +
+        ' attractions.',
+  );
+  print('Charminar was protected and not modified.');
+  print('No documents were deleted.');
+  print('Users and favorites were not touched.');
 }
