@@ -16,14 +16,10 @@ import 'dart:math' as math;
 /// Known existing attraction IDs that must be protected and never duplicated.
 class ExistingAttractions {
   /// Live Firestore document IDs currently in production.
-  static const Set<String> liveFirestoreIds = {
-    'Charminar',
-  };
+  static const Set<String> liveFirestoreIds = {'Charminar'};
 
   /// Legacy ID alias map (e.g. dummy lowercase -> Firestore PascalCase).
-  static const Map<String, String> legacyIdAliases = {
-    'charminar': 'Charminar',
-  };
+  static const Map<String, String> legacyIdAliases = {'charminar': 'Charminar'};
 
   /// Existing dummy attractions defined in TourMate (23 total).
   static const Map<String, String> dummyAttractions = {
@@ -261,7 +257,8 @@ class GlobalAttractionPipeline {
     const double earthRadius = 6371000; // meters
     final dLat = (lat2 - lat1) * math.pi / 180.0;
     final dLon = (lon2 - lon1) * math.pi / 180.0;
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(lat1 * math.pi / 180.0) *
             math.cos(lat2 * math.pi / 180.0) *
             math.sin(dLon / 2) *
@@ -272,8 +269,10 @@ class GlobalAttractionPipeline {
 
   /// Extracts coordinates from WKT 'Point(longitude latitude)'.
   static (double lat, double lng)? parseWktPoint(String point) {
-    final match = RegExp(r'Point\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)', caseSensitive: false)
-        .firstMatch(point.trim());
+    final match = RegExp(
+      r'Point\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)',
+      caseSensitive: false,
+    ).firstMatch(point.trim());
     if (match == null) return null;
 
     final lng = double.tryParse(match.group(1)!);
@@ -323,7 +322,8 @@ class GlobalAttractionPipeline {
 
     // Register existing dummy attractions
     for (final entry in ExistingAttractions.dummyAttractions.entries) {
-      final canonicalId = ExistingAttractions.legacyIdAliases[entry.key] ?? entry.key;
+      final canonicalId =
+          ExistingAttractions.legacyIdAliases[entry.key] ?? entry.key;
       registeredIds.add(canonicalId);
     }
 
@@ -331,7 +331,8 @@ class GlobalAttractionPipeline {
       final map = item as Map<String, dynamic>;
       final rawName = map['name']?.toString().trim() ?? '';
       final rawCountry = map['country']?.toString().trim() ?? '';
-      final rawCountryCode = map['countryCode']?.toString().trim().toUpperCase() ?? '';
+      final rawCountryCode =
+          map['countryCode']?.toString().trim().toUpperCase() ?? '';
       final rawCoords = map['coords']?.toString() ?? '';
       final rawType = map['type']?.toString() ?? '';
       final rawWikidataId = map['wikidataId']?.toString() ?? '';
@@ -395,8 +396,10 @@ class GlobalAttractionPipeline {
         // Check dummy list matches
         for (final entry in ExistingAttractions.dummyAttractions.entries) {
           final dummyNorm = normalizeName(entry.value);
-          if (normName == dummyNorm || (normName.contains(dummyNorm) && dummyNorm.length > 5)) {
-            matchedExistingId = ExistingAttractions.legacyIdAliases[entry.key] ?? entry.key;
+          if (normName == dummyNorm ||
+              (normName.contains(dummyNorm) && dummyNorm.length > 5)) {
+            matchedExistingId =
+                ExistingAttractions.legacyIdAliases[entry.key] ?? entry.key;
             break;
           }
         }
@@ -519,9 +522,13 @@ class GlobalAttractionPipeline {
     print('----------------------------------------------------');
 
     print('\nID Strategy & Charminar Protection:');
-    final charminar = processedAttractions.where((a) => a.id == 'Charminar').toList();
+    final charminar = processedAttractions
+        .where((a) => a.id == 'Charminar')
+        .toList();
     if (charminar.isNotEmpty) {
-      print('  [PROTECTED] Charminar document ID: "${charminar.first.id}" (Matches live Firestore)');
+      print(
+        '  [PROTECTED] Charminar document ID: "${charminar.first.id}" (Matches live Firestore)',
+      );
     } else {
       print('  [INFO] Charminar ID preserved in registry');
     }
@@ -557,7 +564,9 @@ class GlobalAttractionPipeline {
           ? 'None'
           : '${a.imageUrl.substring(0, math.min(50, a.imageUrl.length))}...';
       print('  Image:       $imgPreview');
-      print('  Rating:      ${a.rating} (Source-backed only; zero fake ratings)');
+      print(
+        '  Rating:      ${a.rating} (Source-backed only; zero fake ratings)',
+      );
       print('  Entry Fee:   ${a.entryFee}');
       print('  ------------------------------------------------');
     }
@@ -588,10 +597,13 @@ void main(List<String> args) {
 
   // Administrative Import Mode (Only reached with --import and explicit approval)
   print('Administrative import requested. Checking authorization...');
-  final credentialsPath = Platform.environment['GOOGLE_APPLICATION_CREDENTIALS'];
+  final credentialsPath =
+      Platform.environment['GOOGLE_APPLICATION_CREDENTIALS'];
   if (credentialsPath == null || !File(credentialsPath).existsSync()) {
     print('ERROR: Administrative credentials not found.');
-    print('Production import requires GOOGLE_APPLICATION_CREDENTIALS environment variable.');
+    print(
+      'Production import requires GOOGLE_APPLICATION_CREDENTIALS environment variable.',
+    );
     print('No changes were made to Firestore.');
     exit(1);
   }
