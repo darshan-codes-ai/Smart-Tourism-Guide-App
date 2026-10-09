@@ -42,6 +42,20 @@ class TripService {
     testCurrentUserId = null;
   }
 
+  /// Returns a synchronous trip snapshot when one is available.
+  ///
+  /// The in-memory store is used by tests; production Firestore data is
+  /// asynchronous and therefore returns null here.
+  List<Trip>? get synchronousTripsSnapshot {
+    final store = testTrips;
+    if (store == null) return null;
+    final uid = currentUserId;
+    if (uid == null || uid.isEmpty) return const <Trip>[];
+    final trips = List<Trip>.from(store[uid] ?? const <Trip>[]);
+    trips.sort((a, b) => a.startDate.compareTo(b.startDate));
+    return trips;
+  }
+
   /// Returns the current authenticated user's ID or test override.
   String? get currentUserId {
     if (testCurrentUserId != null) return testCurrentUserId;
@@ -302,7 +316,7 @@ class TripService {
   Future<void> deleteTrip(String tripId) async {
     final uid = currentUserId;
     if (uid == null || uid.isEmpty) {
-      throw const TripServiceException('You must be signed in to delete a trip.');
+      throw const TripServiceException('You must be signed in to delete trips.');
     }
 
     if (testTrips != null) {
