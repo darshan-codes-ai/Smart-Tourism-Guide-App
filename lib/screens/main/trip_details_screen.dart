@@ -24,6 +24,7 @@ class TripDetailsScreen extends StatefulWidget {
 
 class _TripDetailsScreenState extends State<TripDetailsScreen> {
   final Map<String, Attraction?> _attractionsCache = {};
+  final Set<String> _loadingAttractionIds = <String>{};
   bool _loadingAttractions = false;
 
   @override
@@ -35,11 +36,19 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   }
 
   Future<void> _loadAttractions(List<String> attractionIds) async {
-    final missingIds =
-        attractionIds.where((id) => !_attractionsCache.containsKey(id)).toList();
+    final missingIds = attractionIds
+        .where((id) =>
+            !_attractionsCache.containsKey(id) &&
+            !_loadingAttractionIds.contains(id))
+        .toList();
     if (missingIds.isEmpty) return;
 
-    setState(() => _loadingAttractions = true);
+    // Mark IDs before the first await so repeated builds cannot start duplicate
+    // requests for the same attraction.
+    _loadingAttractionIds.addAll(missingIds);
+    if (mounted) {
+      setState(() => _loadingAttractions = true);
+    }
 
     for (final id in missingIds) {
       try {
@@ -47,11 +56,13 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         _attractionsCache[id] = attraction;
       } catch (_) {
         _attractionsCache[id] = null;
+      } finally {
+        _loadingAttractionIds.remove(id);
       }
     }
 
     if (mounted) {
-      setState(() => _loadingAttractions = false);
+      setState(() => _loadingAttractions = _loadingAttractionIds.isNotEmpty);
     }
   }
 
@@ -181,8 +192,11 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
           );
         }
 
-        // Trigger loading of any new attraction IDs
-        _loadAttractions(trip.attractionIds);
+        // Loading can call setState, so defer it until after this build frame.
+        // The in-flight ID set prevents duplicate requests across rebuilds.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _loadAttractions(trip!.attractionIds);
+        });
 
         return Scaffold(
           appBar: AppBar(
