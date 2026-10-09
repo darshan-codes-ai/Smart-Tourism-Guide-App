@@ -63,6 +63,11 @@ void main() {
   testWidgets('navigates MainShell tabs (Home, Explore, Trips, Saved, Profile)', (
     tester,
   ) async {
+    // Exercise the compact bottom-navigation layout deterministically. The
+    // default test surface is wide enough to select NavigationRail instead.
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light(),
@@ -73,19 +78,26 @@ void main() {
 
     expect(find.text('Where do you want to explore?'), findsOneWidget);
 
-    await tester.tap(find.text('Explore'));
+    // Scope taps to the navigation bar: the Explore page also has an "Explore"
+    // heading, so an unscoped text finder can become ambiguous after navigation.
+    Finder destination(String label) => find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text(label),
+        );
+
+    await tester.tap(destination('Explore'));
     await tester.pumpAndSettle();
     expect(find.text('Explore'), findsWidgets);
 
-    await tester.tap(find.text('Trips'));
+    await tester.tap(destination('Trips'));
     await tester.pumpAndSettle();
     expect(find.text('No trips yet'), findsOneWidget);
 
-    await tester.tap(find.text('Saved'));
+    await tester.tap(destination('Saved'));
     await tester.pumpAndSettle();
     expect(find.text('My Saved Places'), findsOneWidget);
 
-    await tester.tap(find.text('Profile').first);
+    await tester.tap(destination('Profile'));
     await tester.pumpAndSettle();
     expect(find.text('Profile'), findsWidgets);
     expect(find.text('TourMate'), findsWidgets);
