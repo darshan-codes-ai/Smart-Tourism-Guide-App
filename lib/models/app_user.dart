@@ -17,6 +17,28 @@ class AppUser {
   final String provider;
   final String role;
 
+  bool get isAdmin => role.trim().toLowerCase() == 'admin';
+
+  AppUser copyWith({
+    String? uid,
+    String? name,
+    String? email,
+    String? photoUrl,
+    String? phoneNumber,
+    String? provider,
+    String? role,
+  }) {
+    return AppUser(
+      uid: uid ?? this.uid,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      photoUrl: photoUrl ?? this.photoUrl,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      provider: provider ?? this.provider,
+      role: role ?? this.role,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'uid': uid,

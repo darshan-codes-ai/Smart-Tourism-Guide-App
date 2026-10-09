@@ -2,6 +2,14 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.role == 'admin' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow create: if request.auth != null
@@ -50,7 +58,19 @@ service cloud.firestore {
 
     match /attractions/{attractionId} {
       allow read: if true;
-      allow write: if false;
+      allow create: if isAdmin()
+        && request.resource.data.name is string && request.resource.data.name.size() > 0
+        && request.resource.data.category is string && request.resource.data.category.size() > 0
+        && request.resource.data.description is string && request.resource.data.description.size() > 0
+        && request.resource.data.imageUrl is string && request.resource.data.imageUrl.size() > 0
+        && request.resource.data.rating is number && request.resource.data.rating >= 0 && request.resource.data.rating <= 5;
+      allow update: if isAdmin()
+        && request.resource.data.name is string && request.resource.data.name.size() > 0
+        && request.resource.data.category is string && request.resource.data.category.size() > 0
+        && request.resource.data.description is string && request.resource.data.description.size() > 0
+        && request.resource.data.imageUrl is string && request.resource.data.imageUrl.size() > 0
+        && request.resource.data.rating is number && request.resource.data.rating >= 0 && request.resource.data.rating <= 5;
+      allow delete: if isAdmin();
 
       match /reviews/{reviewId} {
         allow read: if true;

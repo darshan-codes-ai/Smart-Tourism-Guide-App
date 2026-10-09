@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/router/app_router.dart';
+import '../../services/admin_service.dart';
 import '../../services/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -81,6 +84,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 20),
+              StreamBuilder<bool>(
+                stream: AdminService.instance.watchIsCurrentUserAdmin(),
+                initialData: false,
+                builder: (context, adminSnapshot) {
+                  if (adminSnapshot.data != true) {
+                    return const SizedBox.shrink();
+                  }
+                  return _ProfileTile(
+                    key: const Key('admin_dashboard_profile_tile'),
+                    icon: Icons.admin_panel_settings_rounded,
+                    title: 'Admin Dashboard',
+                    onTap: () => context.push(AppRouter.admin),
+                  );
+                },
+              ),
               _ProfileTile(
                 icon: Icons.edit_outlined,
                 title: 'Edit Profile',
@@ -187,6 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
 class _ProfileTile extends StatelessWidget {
   const _ProfileTile({
+    super.key,
     required this.icon,
     required this.title,
     required this.onTap,

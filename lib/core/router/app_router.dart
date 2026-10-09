@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../screens/admin/admin_dashboard_screen.dart';
 import '../../screens/auth/login_screen.dart';
 import '../../screens/auth/register_screen.dart';
 import '../../screens/main/main_shell.dart';
@@ -22,6 +23,7 @@ class AppRouter {
   static const phoneLogin = '/phone-login';
   static const home = '/home';
   static const map = '/map';
+  static const admin = '/admin';
 
   static final _authRefresh = _GoRouterRefreshStream(
     AuthService.instance.authStateChanges,
@@ -38,7 +40,7 @@ class AppRouter {
       final onAuthRoute =
           location == login || location == register || location == phoneLogin;
       final onOnboarding = location == onboarding;
-      final inMainApp = location == home || location == map;
+      final inMainApp = location == home || location == map || location == admin;
 
       if (onSplash) return null;
       if (signedIn && (onAuthRoute || onOnboarding)) return home;
@@ -64,6 +66,10 @@ class AppRouter {
       GoRoute(
         path: map,
         builder: (context, state) => const MapScreen(showAppBar: true),
+      ),
+      GoRoute(
+        path: admin,
+        builder: (context, state) => const AdminDashboardScreen(),
       ),
     ],
   );

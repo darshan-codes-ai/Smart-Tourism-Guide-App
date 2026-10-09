@@ -15,6 +15,10 @@ class FirestoreService {
   @visibleForTesting
   static Map<String, Set<String>>? testFavorites;
 
+  /// Optional in-memory test users store for unit testing without live Firebase.
+  @visibleForTesting
+  static Map<String, AppUser>? testUsers;
+
   /// Optional stream controller for testing real-time favorite updates.
   @visibleForTesting
   static StreamController<Set<String>>? testFavoritesController;
@@ -37,13 +41,27 @@ class FirestoreService {
   }
 
   Future<void> createUserProfile(AppUser user) async {
+    if (testUsers != null) {
+      final existing = testUsers![user.uid];
+      if (existing != null) {
+        testUsers![user.uid] = user.copyWith(role: existing.role);
+      } else {
+        testUsers![user.uid] = user;
+      }
+      return;
+    }
     final users = _users;
     if (users == null) return;
     final userRef = users.doc(user.uid);
     final snapshot = await userRef.get();
 
     if (snapshot.exists) {
-      await _updateUserProfileDocument(userRef, user);
+      final existingData = snapshot.data();
+      final existingRole = existingData?['role'] as String?;
+      final mergedUser = (existingRole != null && existingRole.isNotEmpty)
+          ? user.copyWith(role: existingRole)
+          : user;
+      await _updateUserProfileDocument(userRef, mergedUser);
       return;
     }
 
@@ -55,13 +73,27 @@ class FirestoreService {
   }
 
   Future<void> ensureUserProfile(AppUser user) async {
+    if (testUsers != null) {
+      final existing = testUsers![user.uid];
+      if (existing != null) {
+        testUsers![user.uid] = user.copyWith(role: existing.role);
+      } else {
+        testUsers![user.uid] = user;
+      }
+      return;
+    }
     final users = _users;
     if (users == null) return;
     final userRef = users.doc(user.uid);
     final snapshot = await userRef.get();
 
     if (snapshot.exists) {
-      await _updateUserProfileDocument(userRef, user);
+      final existingData = snapshot.data();
+      final existingRole = existingData?['role'] as String?;
+      final mergedUser = (existingRole != null && existingRole.isNotEmpty)
+          ? user.copyWith(role: existingRole)
+          : user;
+      await _updateUserProfileDocument(userRef, mergedUser);
       return;
     }
 
@@ -69,6 +101,9 @@ class FirestoreService {
   }
 
   Future<AppUser?> getUserProfile(String uid) async {
+    if (testUsers != null) {
+      return testUsers![uid];
+    }
     final users = _users;
     if (users == null) return null;
     final snapshot = await users.doc(uid).get();
@@ -81,7 +116,24 @@ class FirestoreService {
     return AppUser.fromMap(data);
   }
 
+  Stream<AppUser?> watchUserProfile(String uid) {
+    if (testUsers != null) {
+      return Stream.value(testUsers![uid]);
+    }
+    final users = _users;
+    if (users == null) return const Stream<AppUser?>.empty();
+    return users.doc(uid).snapshots().map((snapshot) {
+      final data = snapshot.data();
+      if (!snapshot.exists || data == null) return null;
+      return AppUser.fromMap(data);
+    });
+  }
+
   Future<void> updateUserProfile(AppUser user) async {
+    if (testUsers != null) {
+      testUsers![user.uid] = user;
+      return;
+    }
     final users = _users;
     if (users == null) return;
     await _updateUserProfileDocument(users.doc(user.uid), user);
