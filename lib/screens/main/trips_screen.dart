@@ -101,10 +101,11 @@ class _TripsScreenState extends State<TripsScreen> {
             // Trips Stream List
             Expanded(
               child: StreamBuilder<List<Trip>>(
-                stream: _tripsStream,
-                // Seed the in-memory test store synchronously. This keeps
-                // widget tests deterministic while production Firestore
-                // streams continue to show the loading state until first data.
+                // The in-memory test store is a synchronous snapshot, not a
+                // live stream. Avoid subscribing to a one-shot Stream.value
+                // in widget tests; production continues to use the live
+                // Firestore stream below.
+                stream: TripService.testTrips == null ? _tripsStream : null,
                 initialData: TripService.testTrips == null
                     ? null
                     : List<Trip>.from(
