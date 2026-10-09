@@ -90,6 +90,13 @@ class _TripsScreenState extends State<TripsScreen> {
                   ),
                 ),
                 FilledButton.icon(
+                  // The app-wide button theme uses an infinite minimum width
+                  // for full-width form buttons. Override it here because this
+                  // button shares a Row with the title.
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 52),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
                   onPressed: () => _handleCreateTrip(context),
                   icon: const Icon(Icons.add_rounded, size: 20),
                   label: const Text('New Trip'),
