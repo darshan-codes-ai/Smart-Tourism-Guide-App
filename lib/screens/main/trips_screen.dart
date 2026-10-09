@@ -8,8 +8,24 @@ import '../../widgets/trip_form_sheet.dart';
 import 'trip_details_screen.dart';
 
 /// Screen displaying the user's list of planned trips / itineraries.
-class TripsScreen extends StatelessWidget {
+class TripsScreen extends StatefulWidget {
   const TripsScreen({super.key});
+
+  @override
+  State<TripsScreen> createState() => _TripsScreenState();
+}
+
+class _TripsScreenState extends State<TripsScreen> {
+  late final Stream<List<Trip>> _tripsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    // Keep the stream instance stable across rebuilds. Creating a new stream
+    // inside build causes StreamBuilder to resubscribe repeatedly, which can
+    // make widget tests fail to settle and can restart live subscriptions.
+    _tripsStream = TripService.instance.streamTrips();
+  }
 
   static void _handleCreateTrip(BuildContext context) async {
     final isAuthenticated = TripService.instance.isAuthenticated;
@@ -85,7 +101,7 @@ class TripsScreen extends StatelessWidget {
             // Trips Stream List
             Expanded(
               child: StreamBuilder<List<Trip>>(
-                stream: TripService.instance.streamTrips(),
+                stream: _tripsStream,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting &&
                       !snapshot.hasData) {
