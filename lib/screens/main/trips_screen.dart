@@ -102,6 +102,16 @@ class _TripsScreenState extends State<TripsScreen> {
             Expanded(
               child: StreamBuilder<List<Trip>>(
                 stream: _tripsStream,
+                // Seed the in-memory test store synchronously. This keeps
+                // widget tests deterministic while production Firestore
+                // streams continue to show the loading state until first data.
+                initialData: TripService.testTrips == null
+                    ? null
+                    : List<Trip>.from(
+                        TripService.testTrips![
+                                TripService.instance.currentUserId] ??
+                            const <Trip>[],
+                      ),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting &&
                       !snapshot.hasData) {
