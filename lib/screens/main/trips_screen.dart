@@ -71,6 +71,7 @@ class _TripsScreenState extends State<TripsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final initialTrips = TripService.instance.synchronousTripsSnapshot;
 
     return SafeArea(
       child: Padding(
@@ -112,14 +113,8 @@ class _TripsScreenState extends State<TripsScreen> {
                 // live stream. Avoid subscribing to a one-shot Stream.value
                 // in widget tests; production continues to use the live
                 // Firestore stream below.
-                stream: TripService.testTrips == null ? _tripsStream : null,
-                initialData: TripService.testTrips == null
-                    ? null
-                    : List<Trip>.from(
-                        TripService.testTrips![
-                                TripService.instance.currentUserId] ??
-                            const <Trip>[],
-                      ),
+                stream: initialTrips == null ? _tripsStream : null,
+                initialData: initialTrips,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting &&
                       !snapshot.hasData) {
