@@ -5,8 +5,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:tourmate/core/theme/app_theme.dart';
 import 'package:tourmate/data/dummy_data.dart';
 import 'package:tourmate/main.dart';
+import 'package:tourmate/models/trip.dart';
 import 'package:tourmate/screens/main/main_shell.dart';
 import 'package:tourmate/services/attraction_service.dart';
+import 'package:tourmate/services/trip_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -14,11 +16,21 @@ void main() {
 
   setUp(() {
     AttractionService.devFallbackEnabled = true;
+
+    // Keep the MainShell navigation test deterministic and completely offline.
+    // The Trips tab should render its empty state without depending on Firebase
+    // initialization or a previously authenticated app session.
+    TripService.resetForTest();
+    TripService.testCurrentUserId = 'widget-test-user';
+    TripService.testTrips = <String, List<Trip>>{
+      'widget-test-user': <Trip>[],
+    };
   });
 
   tearDown(() {
     AttractionService.devFallbackEnabled = false;
     AttractionService.testStream = null;
+    TripService.resetForTest();
     SavedPlacesStore.instance.resetForTest();
   });
 
