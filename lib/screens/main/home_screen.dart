@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/router/app_router.dart';
 import '../../data/dummy_data.dart';
 import '../../models/attraction.dart';
 import '../../services/attraction_service.dart';
@@ -108,6 +110,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ],
                               ),
                             ),
+                            IconButton.filledTonal(
+                              key: const Key('home_ai_recommendations_button'),
+                              tooltip: 'AI Recommendations',
+                              onPressed: () =>
+                                  context.push(AppRouter.recommendations),
+                              icon: const Icon(
+                                Icons.auto_awesome_rounded,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
                             IconButton.filledTonal(
                               onPressed: () {
                                 ScaffoldMessenger.of(context).showSnackBar(

@@ -96,7 +96,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           FilledButton(
             key: const Key('admin_delete_confirm_button'),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              minimumSize: const Size(0, 40),
+            ),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Delete'),
           ),
@@ -184,6 +187,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 const SizedBox(height: 24),
                 FilledButton.icon(
                   key: const Key('admin_unauthorized_return_button'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 48),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
                   onPressed: () => _navigateBack(),
                   icon: const Icon(Icons.home_rounded),
                   label: const Text('Return to Home'),
@@ -216,6 +223,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               key: const Key('admin_add_attraction_button'),
               style: FilledButton.styleFrom(
                 backgroundColor: AppTheme.primary,
+                minimumSize: const Size(0, 38),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
@@ -251,6 +259,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ),
                     const SizedBox(height: 16),
                     OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 40),
+                      ),
                       onPressed: () => setState(() {}),
                       child: const Text('Retry'),
                     ),
@@ -488,6 +499,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           const SizedBox(height: 16),
                           if (_searchQuery.isNotEmpty || (_selectedCategory != null && _selectedCategory != 'All'))
                             OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(0, 40),
+                              ),
                               onPressed: () {
                                 _searchController.clear();
                                 setState(() => _selectedCategory = 'All');

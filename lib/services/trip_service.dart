@@ -143,6 +143,9 @@ class TripService {
     required DateTime startDate,
     required DateTime endDate,
     List<String>? attractionIds,
+    double? budget,
+    int? travelerCount,
+    Map<int, List<String>>? dayItinerary,
   }) async {
     final uid = currentUserId;
     if (uid == null || uid.isEmpty) {
@@ -169,7 +172,28 @@ class TripService {
       throw const TripServiceException('End date cannot be before start date.');
     }
 
-    final initialAttractions = attractionIds ?? const <String>[];
+    if (budget != null && budget < 0) {
+      throw const TripServiceException('Budget cannot be negative.');
+    }
+
+    if (travelerCount != null && travelerCount < 1) {
+      throw const TripServiceException('Traveler count must be at least 1.');
+    }
+
+    // Merge dayItinerary with attractionIds if dayItinerary provided
+    final resolvedAttractions = <String>[];
+    if (dayItinerary != null && dayItinerary.isNotEmpty) {
+      for (final list in dayItinerary.values) {
+        for (final id in list) {
+          if (!resolvedAttractions.contains(id)) {
+            resolvedAttractions.add(id);
+          }
+        }
+      }
+    } else if (attractionIds != null) {
+      resolvedAttractions.addAll(attractionIds);
+    }
+
     final now = DateTime.now();
 
     if (testTrips != null) {
@@ -181,7 +205,10 @@ class TripService {
         destination: trimmedDestination,
         startDate: startDate,
         endDate: endDate,
-        attractionIds: initialAttractions,
+        attractionIds: resolvedAttractions,
+        budget: budget,
+        travelerCount: travelerCount ?? 1,
+        dayItinerary: dayItinerary ?? const <int, List<String>>{},
         createdAt: now,
         updatedAt: now,
       );
@@ -203,7 +230,10 @@ class TripService {
         destination: trimmedDestination,
         startDate: startDate,
         endDate: endDate,
-        attractionIds: initialAttractions,
+        attractionIds: resolvedAttractions,
+        budget: budget,
+        travelerCount: travelerCount ?? 1,
+        dayItinerary: dayItinerary ?? const <int, List<String>>{},
         createdAt: now,
         updatedAt: now,
       );
@@ -224,6 +254,10 @@ class TripService {
     DateTime? startDate,
     DateTime? endDate,
     List<String>? attractionIds,
+    double? budget,
+    bool clearBudget = false,
+    int? travelerCount,
+    Map<int, List<String>>? dayItinerary,
   }) async {
     final uid = currentUserId;
     if (uid == null || uid.isEmpty) {
@@ -252,6 +286,14 @@ class TripService {
       throw const TripServiceException('End date cannot be before start date.');
     }
 
+    if (budget != null && budget < 0) {
+      throw const TripServiceException('Budget cannot be negative.');
+    }
+
+    if (travelerCount != null && travelerCount < 1) {
+      throw const TripServiceException('Traveler count must be at least 1.');
+    }
+
     if (testTrips != null) {
       final userTrips = testTrips![uid] ?? <Trip>[];
       final index = userTrips.indexWhere((t) => t.id == tripId);
@@ -271,6 +313,10 @@ class TripService {
         startDate: newStart,
         endDate: newEnd,
         attractionIds: attractionIds,
+        budget: budget,
+        clearBudget: clearBudget,
+        travelerCount: travelerCount,
+        dayItinerary: dayItinerary,
         updatedAt: DateTime.now(),
       );
       return;
@@ -304,6 +350,15 @@ class TripService {
       if (startDate != null) updates['startDate'] = Timestamp.fromDate(startDate);
       if (endDate != null) updates['endDate'] = Timestamp.fromDate(endDate);
       if (attractionIds != null) updates['attractionIds'] = attractionIds;
+      if (clearBudget) {
+        updates['budget'] = FieldValue.delete();
+      } else if (budget != null) {
+        updates['budget'] = budget;
+      }
+      if (travelerCount != null) updates['travelerCount'] = travelerCount;
+      if (dayItinerary != null) {
+        updates['dayItinerary'] = dayItinerary.map((k, v) => MapEntry(k.toString(), v));
+      }
 
       await docRef.update(updates);
     } catch (e) {
@@ -367,8 +422,18 @@ class TripService {
         throw const TripServiceException('Already added to this trip.');
       }
       final updatedList = List<String>.from(trip.attractionIds)..add(cleanAttractionId);
+      
+      // Also sync dayItinerary if present: place on Day 1
+      final updatedDays = Map<int, List<String>>.from(
+        trip.dayItinerary.map((k, v) => MapEntry(k, List<String>.from(v))),
+      );
+      if (updatedDays.isNotEmpty) {
+        updatedDays.putIfAbsent(1, () => <String>[]).add(cleanAttractionId);
+      }
+
       userTrips[index] = trip.copyWith(
         attractionIds: updatedList,
+        dayItinerary: updatedDays,
         updatedAt: DateTime.now(),
       );
       return;
@@ -391,10 +456,20 @@ class TripService {
         throw const TripServiceException('Already added to this trip.');
       }
 
-      await docRef.update({
+      final updates = <String, dynamic>{
         'attractionIds': FieldValue.arrayUnion([cleanAttractionId]),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      };
+
+      if (trip.dayItinerary.isNotEmpty) {
+        final updatedDays = Map<int, List<String>>.from(
+          trip.dayItinerary.map((k, v) => MapEntry(k, List<String>.from(v))),
+        );
+        updatedDays.putIfAbsent(1, () => <String>[]).add(cleanAttractionId);
+        updates['dayItinerary'] = updatedDays.map((k, v) => MapEntry(k.toString(), v));
+      }
+
+      await docRef.update(updates);
     } catch (e) {
       if (e is TripServiceException) rethrow;
       throw TripServiceException('Failed to add attraction to trip: $e');
@@ -421,8 +496,18 @@ class TripService {
       }
       final trip = userTrips[index];
       final updatedList = List<String>.from(trip.attractionIds)..remove(cleanAttractionId);
+      
+      // Also clean from dayItinerary
+      final updatedDays = Map<int, List<String>>.from(
+        trip.dayItinerary.map((k, v) => MapEntry(k, List<String>.from(v))),
+      );
+      for (final dayList in updatedDays.values) {
+        dayList.remove(cleanAttractionId);
+      }
+
       userTrips[index] = trip.copyWith(
         attractionIds: updatedList,
+        dayItinerary: updatedDays,
         updatedAt: DateTime.now(),
       );
       return;
@@ -435,10 +520,26 @@ class TripService {
 
     try {
       final docRef = collection.doc(tripId);
-      await docRef.update({
+      final doc = await docRef.get();
+      final updates = <String, dynamic>{
         'attractionIds': FieldValue.arrayRemove([cleanAttractionId]),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      };
+
+      if (doc.exists && doc.data() != null) {
+        final trip = Trip.fromFirestore(tripId, doc.data()!);
+        if (trip.dayItinerary.isNotEmpty) {
+          final updatedDays = Map<int, List<String>>.from(
+            trip.dayItinerary.map((k, v) => MapEntry(k, List<String>.from(v))),
+          );
+          for (final dayList in updatedDays.values) {
+            dayList.remove(cleanAttractionId);
+          }
+          updates['dayItinerary'] = updatedDays.map((k, v) => MapEntry(k.toString(), v));
+        }
+      }
+
+      await docRef.update(updates);
     } catch (e) {
       if (e is TripServiceException) rethrow;
       throw TripServiceException('Failed to remove attraction from trip: $e');
@@ -484,5 +585,128 @@ class TripService {
       if (e is TripServiceException) rethrow;
       throw TripServiceException('Failed to reorder attractions: $e');
     }
+  }
+
+  /// Updates the day-by-day itinerary schedule and synchronizes attractionIds.
+  Future<void> updateDayItinerary({
+    required String tripId,
+    required Map<int, List<String>> dayItinerary,
+  }) async {
+    final uid = currentUserId;
+    if (uid == null || uid.isEmpty) {
+      throw const TripServiceException('You must be signed in to modify a trip.');
+    }
+
+    // Automatically derive flattened unique attraction IDs to keep attractionIds in sync
+    final derivedAttractionIds = <String>[];
+    for (final dayList in dayItinerary.values) {
+      for (final id in dayList) {
+        if (!derivedAttractionIds.contains(id)) {
+          derivedAttractionIds.add(id);
+        }
+      }
+    }
+
+    if (testTrips != null) {
+      final userTrips = testTrips![uid] ?? <Trip>[];
+      final index = userTrips.indexWhere((t) => t.id == tripId);
+      if (index < 0) {
+        throw const TripServiceException('Trip not found.');
+      }
+      final trip = userTrips[index];
+      userTrips[index] = trip.copyWith(
+        dayItinerary: dayItinerary,
+        attractionIds: derivedAttractionIds,
+        updatedAt: DateTime.now(),
+      );
+      return;
+    }
+
+    final collection = _tripsRef(uid);
+    if (collection == null) {
+      throw const TripServiceException('Firebase is not initialized.');
+    }
+
+    try {
+      final docRef = collection.doc(tripId);
+      final rawDayItinerary = dayItinerary.map((k, v) => MapEntry(k.toString(), v));
+      await docRef.update({
+        'dayItinerary': rawDayItinerary,
+        'attractionIds': derivedAttractionIds,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      if (e is TripServiceException) rethrow;
+      throw TripServiceException('Failed to update day itinerary: $e');
+    }
+  }
+
+  /// Moves an attraction to a specific day in the itinerary.
+  Future<void> moveAttractionToDay({
+    required String tripId,
+    required String attractionId,
+    required int targetDay,
+  }) async {
+    final trip = await getTrip(tripId);
+    if (trip == null) throw const TripServiceException('Trip not found.');
+
+    final currentDays = Map<int, List<String>>.from(
+      trip.resolvedDayItinerary.map((k, v) => MapEntry(k, List<String>.from(v))),
+    );
+
+    // Remove from existing days
+    for (final list in currentDays.values) {
+      list.remove(attractionId);
+    }
+
+    // Add to target day
+    currentDays.putIfAbsent(targetDay, () => <String>[]);
+    if (!currentDays[targetDay]!.contains(attractionId)) {
+      currentDays[targetDay]!.add(attractionId);
+    }
+
+    await updateDayItinerary(tripId: tripId, dayItinerary: currentDays);
+  }
+
+  /// Adds an attraction to a specific day in the itinerary.
+  Future<void> addAttractionToDay({
+    required String tripId,
+    required String attractionId,
+    required int day,
+  }) async {
+    final trip = await getTrip(tripId);
+    if (trip == null) throw const TripServiceException('Trip not found.');
+
+    final currentDays = Map<int, List<String>>.from(
+      trip.resolvedDayItinerary.map((k, v) => MapEntry(k, List<String>.from(v))),
+    );
+
+    currentDays.putIfAbsent(day, () => <String>[]);
+    if (currentDays[day]!.contains(attractionId)) {
+      throw const TripServiceException('Attraction already scheduled for this day.');
+    }
+    currentDays[day]!.add(attractionId);
+
+    await updateDayItinerary(tripId: tripId, dayItinerary: currentDays);
+  }
+
+  /// Removes an attraction from a specific day in the itinerary.
+  Future<void> removeAttractionFromDay({
+    required String tripId,
+    required String attractionId,
+    required int day,
+  }) async {
+    final trip = await getTrip(tripId);
+    if (trip == null) throw const TripServiceException('Trip not found.');
+
+    final currentDays = Map<int, List<String>>.from(
+      trip.resolvedDayItinerary.map((k, v) => MapEntry(k, List<String>.from(v))),
+    );
+
+    if (currentDays.containsKey(day)) {
+      currentDays[day]!.remove(attractionId);
+    }
+
+    await updateDayItinerary(tripId: tripId, dayItinerary: currentDays);
   }
 }

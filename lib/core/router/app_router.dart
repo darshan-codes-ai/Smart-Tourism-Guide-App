@@ -10,6 +10,7 @@ import '../../screens/auth/register_screen.dart';
 import '../../screens/main/main_shell.dart';
 import '../../screens/main/map_screen.dart';
 import '../../screens/onboarding/onboarding_screen.dart';
+import '../../screens/recommendations/recommendations_screen.dart';
 import '../../screens/splash/splash_screen.dart';
 import '../../services/auth_service.dart';
 
@@ -24,6 +25,7 @@ class AppRouter {
   static const home = '/home';
   static const map = '/map';
   static const admin = '/admin';
+  static const recommendations = '/recommendations';
 
   static final _authRefresh = _GoRouterRefreshStream(
     AuthService.instance.authStateChanges,
@@ -40,7 +42,11 @@ class AppRouter {
       final onAuthRoute =
           location == login || location == register || location == phoneLogin;
       final onOnboarding = location == onboarding;
-      final inMainApp = location == home || location == map || location == admin;
+      final inMainApp =
+          location == home ||
+          location == map ||
+          location == admin ||
+          location == recommendations;
 
       if (onSplash) return null;
       if (signedIn && (onAuthRoute || onOnboarding)) return home;
@@ -70,6 +76,10 @@ class AppRouter {
       GoRoute(
         path: admin,
         builder: (context, state) => const AdminDashboardScreen(),
+      ),
+      GoRoute(
+        path: recommendations,
+        builder: (context, state) => const RecommendationsScreen(),
       ),
     ],
   );

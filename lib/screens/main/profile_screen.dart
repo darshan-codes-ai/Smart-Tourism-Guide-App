@@ -100,6 +100,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 },
               ),
               _ProfileTile(
+                key: const Key('ai_recommendations_profile_tile'),
+                icon: Icons.auto_awesome_rounded,
+                title: 'Travel Preferences & AI Picks',
+                onTap: () => context.push(AppRouter.recommendations),
+              ),
+              _ProfileTile(
                 icon: Icons.edit_outlined,
                 title: 'Edit Profile',
                 onTap: () => _showPlaceholder(context, 'Edit Profile'),

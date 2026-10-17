@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_theme.dart';
+import '../data/dummy_data.dart';
+import '../models/attraction.dart';
 import '../models/trip.dart';
+import '../services/attraction_service.dart';
+import '../services/itinerary_service.dart';
+import '../services/recommendation_service.dart';
 import '../services/trip_service.dart';
 
 /// Modal bottom sheet for creating or editing a trip.
@@ -9,16 +15,19 @@ class TripFormSheet extends StatefulWidget {
     super.key,
     this.initialTrip,
     this.initialAttractionId,
+    this.initialDestination,
   });
 
   final Trip? initialTrip;
   final String? initialAttractionId;
+  final String? initialDestination;
 
   /// Helper to show the sheet and return the saved [Trip].
   static Future<Trip?> show(
     BuildContext context, {
     Trip? initialTrip,
     String? initialAttractionId,
+    String? initialDestination,
   }) {
     return showModalBottomSheet<Trip>(
       context: context,
@@ -27,6 +36,7 @@ class TripFormSheet extends StatefulWidget {
       builder: (context) => TripFormSheet(
         initialTrip: initialTrip,
         initialAttractionId: initialAttractionId,
+        initialDestination: initialDestination,
       ),
     );
   }
@@ -39,8 +49,11 @@ class _TripFormSheetState extends State<TripFormSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _destinationController;
+  late final TextEditingController _budgetController;
   late DateTime _startDate;
   late DateTime _endDate;
+  int _travelerCount = 1;
+  bool _autoGenerateItinerary = false;
   bool _submitting = false;
   String? _errorMessage;
 
@@ -56,17 +69,24 @@ class _TripFormSheetState extends State<TripFormSheet> {
       text: widget.initialTrip?.name ?? '',
     );
     _destinationController = TextEditingController(
-      text: widget.initialTrip?.destination ?? '',
+      text: widget.initialTrip?.destination ?? widget.initialDestination ?? '',
+    );
+    _budgetController = TextEditingController(
+      text: widget.initialTrip?.budget != null && widget.initialTrip!.budget! > 0
+          ? widget.initialTrip!.budget!.toStringAsFixed(0)
+          : '',
     );
 
     _startDate = widget.initialTrip?.startDate ?? today;
     _endDate = widget.initialTrip?.endDate ?? today.add(const Duration(days: 3));
+    _travelerCount = widget.initialTrip?.travelerCount ?? 1;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _destinationController.dispose();
+    _budgetController.dispose();
     super.dispose();
   }
 
@@ -110,12 +130,32 @@ class _TripFormSheetState extends State<TripFormSheet> {
     }
   }
 
+  Future<List<Attraction>> _fetchAttractionPool() async {
+    try {
+      final list = await AttractionService.instance
+          .watchAttractions()
+          .first
+          .timeout(const Duration(seconds: 2));
+      if (list.isNotEmpty) return list;
+    } catch (_) {}
+    return DummyData.attractions;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (_endDate.isBefore(_startDate)) {
       setState(() {
         _errorMessage = 'End date cannot be before start date.';
+      });
+      return;
+    }
+
+    final budgetText = _budgetController.text.trim();
+    final double? budget = budgetText.isEmpty ? null : double.tryParse(budgetText);
+    if (budgetText.isNotEmpty && (budget == null || budget < 0)) {
+      setState(() {
+        _errorMessage = 'Please enter a valid positive budget.';
       });
       return;
     }
@@ -134,25 +174,54 @@ class _TripFormSheetState extends State<TripFormSheet> {
           destination: _destinationController.text.trim(),
           startDate: _startDate,
           endDate: _endDate,
+          budget: budget,
+          clearBudget: budget == null,
+          travelerCount: _travelerCount,
         );
         final updatedTrip = widget.initialTrip!.copyWith(
           name: _nameController.text.trim(),
           destination: _destinationController.text.trim(),
           startDate: _startDate,
           endDate: _endDate,
+          budget: budget,
+          clearBudget: budget == null,
+          travelerCount: _travelerCount,
           updatedAt: DateTime.now(),
         );
         if (mounted) Navigator.of(context).pop(updatedTrip);
       } else {
-        final attractionIds = widget.initialAttractionId != null
+        List<String> attractionIds = widget.initialAttractionId != null
             ? <String>[widget.initialAttractionId!]
             : <String>[];
+        Map<int, List<String>> dayItinerary = const <int, List<String>>{};
+
+        if (_autoGenerateItinerary) {
+          final pool = await _fetchAttractionPool();
+          final userInterests = RecommendationService.instance.currentPreference.selectedInterests;
+          final generated = ItineraryService.instance.generateItinerary(
+            destination: _destinationController.text.trim(),
+            startDate: _startDate,
+            endDate: _endDate,
+            availableAttractions: pool,
+            interests: userInterests.isNotEmpty ? userInterests : null,
+            budget: budget,
+            travelerCount: _travelerCount,
+          );
+          if (generated.allAttractionIds.isNotEmpty) {
+            attractionIds = generated.allAttractionIds;
+            dayItinerary = generated.dayItineraryIds;
+          }
+        }
+
         final newTrip = await TripService.instance.createTrip(
           name: _nameController.text.trim(),
           destination: _destinationController.text.trim(),
           startDate: _startDate,
           endDate: _endDate,
           attractionIds: attractionIds,
+          budget: budget,
+          travelerCount: _travelerCount,
+          dayItinerary: dayItinerary,
         );
         if (mounted) Navigator.of(context).pop(newTrip);
       }
@@ -299,12 +368,123 @@ class _TripFormSheetState extends State<TripFormSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
+
+              // Budget & Travelers Row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Available Budget (optional)
+                  Expanded(
+                    flex: 3,
+                    child: TextFormField(
+                      controller: _budgetController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        labelText: 'Budget (optional)',
+                        hintText: 'e.g. 1500',
+                        prefixIcon: const Icon(Icons.attach_money_rounded, size: 20),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      validator: (value) {
+                        final text = value?.trim() ?? '';
+                        if (text.isNotEmpty) {
+                          final val = double.tryParse(text);
+                          if (val == null || val < 0) return 'Invalid budget';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Traveler Count Stepper
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      height: 56,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: theme.colorScheme.outlineVariant),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove, size: 16),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: _travelerCount > 1
+                                ? () => setState(() => _travelerCount--)
+                                : null,
+                          ),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '$_travelerCount',
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                              ),
+                              Text(
+                                _travelerCount == 1 ? 'Traveller' : 'Travellers',
+                                style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurfaceVariant),
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add, size: 16),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () => setState(() => _travelerCount++),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Smart AI Itinerary Checkbox (when creating)
+              if (!isEditing) ...[
+                Material(
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+                    ),
+                    child: SwitchListTile(
+                      key: const Key('trip_form_auto_itinerary_switch'),
+                      value: _autoGenerateItinerary,
+                      activeThumbColor: AppTheme.primary,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Generate Smart Itinerary',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                      ),
+                      subtitle: const Text(
+                        'Auto-schedule recommended attractions for this destination across trip days',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      secondary: const Icon(Icons.auto_awesome_rounded, color: AppTheme.primary),
+                      onChanged: (val) => setState(() => _autoGenerateItinerary = val),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
 
               // Action Buttons
               FilledButton(
                 onPressed: _submitting ? null : _submit,
                 style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 50),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -334,4 +514,3 @@ class _TripFormSheetState extends State<TripFormSheet> {
     );
   }
 }
-

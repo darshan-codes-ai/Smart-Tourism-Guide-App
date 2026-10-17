@@ -490,6 +490,7 @@ class _AttractionFormDialogState extends State<AttractionFormDialog> {
                     key: const Key('admin_attraction_cancel_button'),
                     onPressed: _isSaving ? null : () => Navigator.of(context).pop(false),
                     style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 44),
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -501,6 +502,7 @@ class _AttractionFormDialogState extends State<AttractionFormDialog> {
                     onPressed: _isSaving ? null : _submit,
                     style: FilledButton.styleFrom(
                       backgroundColor: AppTheme.primary,
+                      minimumSize: const Size(0, 44),
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),

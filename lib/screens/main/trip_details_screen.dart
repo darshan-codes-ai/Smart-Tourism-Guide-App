@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_theme.dart';
+import '../../data/dummy_data.dart';
 import '../../models/attraction.dart';
+import '../../models/travel_preference.dart';
 import '../../models/trip.dart';
 import '../../services/attraction_service.dart';
+import '../../services/itinerary_service.dart';
+import '../../services/recommendation_service.dart';
 import '../../services/trip_service.dart';
 import '../../widgets/attraction_card.dart';
 import '../../widgets/trip_form_sheet.dart';
 
-/// Screen displaying the trip's itinerary and allowing reordering and attraction management.
+/// Screen displaying the trip's itinerary and allowing day-by-day management,
+/// AI itinerary generation, reordering, and attraction management.
 class TripDetailsScreen extends StatefulWidget {
   const TripDetailsScreen({
     super.key,
@@ -26,6 +32,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   final Map<String, Attraction?> _attractionsCache = {};
   final Set<String> _loadingAttractionIds = <String>{};
   bool _loadingAttractions = false;
+  int? _selectedDay; // null = all days
 
   @override
   void initState() {
@@ -43,8 +50,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         .toList();
     if (missingIds.isEmpty) return;
 
-    // Mark IDs before the first await so repeated builds cannot start duplicate
-    // requests for the same attraction.
     _loadingAttractionIds.addAll(missingIds);
     if (mounted) {
       setState(() => _loadingAttractions = true);
@@ -81,6 +86,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 40),
               backgroundColor: Colors.red.shade700,
             ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
@@ -148,6 +154,187 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     }
   }
 
+  Future<void> _moveAttractionToDay(Trip trip, String attractionId, int targetDay) async {
+    try {
+      await TripService.instance.moveAttractionToDay(
+        tripId: trip.id,
+        attractionId: attractionId,
+        targetDay: targetDay,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Moved to Day $targetDay.'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e is TripServiceException ? e.message : 'Failed to move: $e'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showGenerateItineraryModal(BuildContext context, Trip trip) async {
+    final interests = Set<TravelInterest>.from(
+      RecommendationService.instance.currentPreference.selectedInterests,
+    );
+    int attractionsPerDay = 3;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.auto_awesome_rounded, color: AppTheme.primary, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Smart Itinerary Generator',
+                    style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Auto-schedule recommended attractions in ${trip.destination} for all ${trip.durationInDays} days.',
+                style: Theme.of(ctx).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 16),
+
+              // Pacing Selection
+              Text(
+                'Pacing (attractions / day):',
+                style: Theme.of(ctx).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<int>(
+                segments: const [
+                  ButtonSegment(value: 2, label: Text('Relaxed (2)')),
+                  ButtonSegment(value: 3, label: Text('Standard (3)')),
+                  ButtonSegment(value: 4, label: Text('Active (4)')),
+                ],
+                selected: {attractionsPerDay},
+                onSelectionChanged: (val) => setSheetState(() => attractionsPerDay = val.first),
+              ),
+              const SizedBox(height: 16),
+
+              // Interests Selection
+              Text(
+                'Prioritize interests:',
+                style: Theme.of(ctx).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: TravelInterest.values.map((interest) {
+                  final isSelected = interests.contains(interest);
+                  return FilterChip(
+                    label: Text(interest.label, style: const TextStyle(fontSize: 12)),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setSheetState(() {
+                        if (selected) {
+                          interests.add(interest);
+                        } else {
+                          interests.remove(interest);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 24),
+
+              FilledButton.icon(
+                key: const Key('confirm_generate_itinerary_button'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () async {
+                  Navigator.of(sheetContext).pop();
+
+                  // Fetch pool
+                  List<Attraction> pool = [];
+                  try {
+                    pool = await AttractionService.instance
+                        .watchAttractions()
+                        .first
+                        .timeout(const Duration(seconds: 2));
+                  } catch (_) {}
+                  if (pool.isEmpty) pool = DummyData.attractions;
+
+                  final generated = ItineraryService.instance.generateItinerary(
+                    destination: trip.destination,
+                    startDate: trip.startDate,
+                    endDate: trip.endDate,
+                    availableAttractions: pool,
+                    interests: interests.isNotEmpty ? interests : null,
+                    budget: trip.budget,
+                    travelerCount: trip.travelerCount,
+                    attractionsPerDay: attractionsPerDay,
+                  );
+
+                  if (generated.allAttractionIds.isEmpty) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No attractions found matching destination.')),
+                      );
+                    }
+                    return;
+                  }
+
+                  await TripService.instance.updateDayItinerary(
+                    tripId: trip.id,
+                    dayItinerary: generated.dayItineraryIds,
+                  );
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Scheduled ${generated.allAttractions.length} attractions across ${trip.durationInDays} days!',
+                        ),
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.auto_awesome_rounded),
+                label: const Text('Generate & Apply Itinerary'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  int _findDayForAttraction(Map<int, List<String>> dayItinerary, String attractionId) {
+    for (final entry in dayItinerary.entries) {
+      if (entry.value.contains(attractionId)) {
+        return entry.key;
+      }
+    }
+    return 1;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -183,6 +370,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                   const Text('Trip not found or has been deleted.'),
                   const SizedBox(height: 16),
                   FilledButton(
+                    style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text('Back to Trips'),
                   ),
@@ -192,11 +380,16 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
           );
         }
 
-        // Loading can call setState, so defer it until after this build frame.
-        // The in-flight ID set prevents duplicate requests across rebuilds.
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) _loadAttractions(trip!.attractionIds);
         });
+
+        final resolvedDays = trip.resolvedDayItinerary;
+
+        // Filter attractions list based on selected day (or all)
+        final displayedAttractionIds = _selectedDay == null
+            ? trip.attractionIds
+            : (resolvedDays[_selectedDay] ?? const <String>[]);
 
         return Scaffold(
           appBar: AppBar(
@@ -207,6 +400,12 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
             actions: [
+              IconButton(
+                key: const Key('trip_details_generate_itinerary_appbar_button'),
+                icon: const Icon(Icons.auto_awesome_rounded),
+                tooltip: 'Smart Itinerary',
+                onPressed: () => _showGenerateItineraryModal(context, trip!),
+              ),
               IconButton(
                 icon: const Icon(Icons.edit_outlined),
                 tooltip: 'Edit Trip',
@@ -264,21 +463,28 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        Row(
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            Icon(
-                              Icons.calendar_month_outlined,
-                              size: 18,
-                              color: theme.colorScheme.onSurfaceVariant,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.calendar_month_outlined,
+                                  size: 16,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  trip.formattedDateRange,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              trip.formattedDateRange,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
@@ -294,6 +500,40 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                                 ),
                               ),
                             ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.people_alt_outlined, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    trip.formattedTravelers,
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (trip.formattedBudget.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '💰 ${trip.formattedBudget}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.green.shade800,
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ],
@@ -302,10 +542,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                 ),
               ),
 
-              // "Your Attractions" Section Header
+              // Section Header
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
                   child: Row(
                     children: [
                       Text(
@@ -331,7 +571,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                         ),
                       ),
                       const Spacer(),
-                      if (trip.attractionCount > 1)
+                      if (trip.attractionCount > 1 && _selectedDay == null)
                         Text(
                           'Drag to reorder',
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -343,8 +583,42 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                 ),
               ),
 
+              // Day Selector Filter Bar
+              if (trip.durationInDays > 1)
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 38,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: trip.durationInDays + 1,
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          final isSelected = _selectedDay == null;
+                          return ChoiceChip(
+                            label: const Text('All Days', style: TextStyle(fontSize: 12)),
+                            selected: isSelected,
+                            onSelected: (_) => setState(() => _selectedDay = null),
+                          );
+                        }
+                        final dayNum = index;
+                        final count = resolvedDays[dayNum]?.length ?? 0;
+                        final isSelected = _selectedDay == dayNum;
+                        return ChoiceChip(
+                          label: Text('Day $dayNum ($count)', style: const TextStyle(fontSize: 12)),
+                          selected: isSelected,
+                          onSelected: (_) => setState(() => _selectedDay = dayNum),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+
               // Empty or Reorderable Attractions List
-              if (trip.attractionIds.isEmpty)
+              if (displayedAttractionIds.isEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
@@ -353,30 +627,42 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 80,
-                            height: 80,
+                            width: 72,
+                            height: 72,
                             decoration: BoxDecoration(
                               color: theme.colorScheme.primary.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               Icons.add_location_alt_outlined,
-                              size: 40,
+                              size: 36,
                               color: theme.colorScheme.primary,
                             ),
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'No attractions added yet',
+                            _selectedDay == null
+                                ? 'No attractions added yet'
+                                : 'No attractions scheduled for Day $_selectedDay',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w800,
                             ),
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Browse attractions in Explore or Home and tap "Add to Trip" to build your itinerary.',
+                            'Browse attractions or let AI generate a day-by-day plan automatically.',
                             textAlign: TextAlign.center,
                             style: theme.textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 16),
+                          FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(0, 42),
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                            ),
+                            onPressed: () => _showGenerateItineraryModal(context, trip!),
+                            icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+                            label: const Text('Generate Smart Itinerary'),
                           ),
                         ],
                       ),
@@ -387,7 +673,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                   sliver: SliverReorderableList(
-                    itemCount: trip.attractionIds.length,
+                    itemCount: displayedAttractionIds.length,
                     // ignore: deprecated_member_use
                     onReorder: (oldIndex, newIndex) {
                       if (oldIndex < newIndex) {
@@ -403,8 +689,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                       );
                     },
                     itemBuilder: (context, index) {
-                      final attractionId = trip!.attractionIds[index];
+                      final attractionId = displayedAttractionIds[index];
                       final attraction = _attractionsCache[attractionId];
+                      final dayNumber = _findDayForAttraction(resolvedDays, attractionId);
 
                       return ReorderableDelayedDragStartListener(
                         key: ValueKey(attractionId),
@@ -415,7 +702,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                             index: index + 1,
                             attractionId: attractionId,
                             attraction: attraction,
+                            dayNumber: dayNumber,
+                            totalDays: trip!.durationInDays,
                             isLoading: _loadingAttractions && attraction == null,
+                            onMoveToDay: (newDay) => _moveAttractionToDay(trip!, attractionId, newDay),
                             onRemove: () => _removeAttraction(
                               trip!,
                               attractionId,
@@ -440,14 +730,20 @@ class _ItineraryAttractionCard extends StatelessWidget {
     required this.index,
     required this.attractionId,
     required this.attraction,
+    required this.dayNumber,
+    required this.totalDays,
     required this.isLoading,
+    required this.onMoveToDay,
     required this.onRemove,
   });
 
   final int index;
   final String attractionId;
   final Attraction? attraction;
+  final int dayNumber;
+  final int totalDays;
   final bool isLoading;
+  final ValueChanged<int> onMoveToDay;
   final VoidCallback onRemove;
 
   @override
@@ -514,7 +810,7 @@ class _ItineraryAttractionCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
 
-              // Title & Category/Location
+              // Title, Category, Rating & Day Badge
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -539,10 +835,10 @@ class _ItineraryAttractionCard extends StatelessWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    if (attraction != null) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        if (attraction != null) ...[
                           const Icon(
                             Icons.star_rounded,
                             size: 14,
@@ -556,12 +852,48 @@ class _ItineraryAttractionCard extends StatelessWidget {
                               fontSize: 11,
                             ),
                           ),
+                          const SizedBox(width: 8),
                         ],
-                      ),
-                    ],
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'Day $dayNumber',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: theme.colorScheme.onSecondaryContainer,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
+
+              // Move to day menu
+              if (totalDays > 1)
+                PopupMenuButton<int>(
+                  icon: const Icon(Icons.calendar_month_outlined, size: 20),
+                  tooltip: 'Move to another day',
+                  onSelected: onMoveToDay,
+                  itemBuilder: (context) => [
+                    for (int d = 1; d <= totalDays; d++)
+                      PopupMenuItem(
+                        value: d,
+                        child: Text(
+                          d == dayNumber ? 'Day $d (Current)' : 'Move to Day $d',
+                          style: TextStyle(
+                            fontWeight: d == dayNumber ? FontWeight.w800 : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
 
               // Actions: Remove Button & Drag Handle
               IconButton(

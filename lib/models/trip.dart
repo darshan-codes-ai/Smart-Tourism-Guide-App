@@ -10,6 +10,9 @@ class Trip {
     required this.startDate,
     required this.endDate,
     this.attractionIds = const <String>[],
+    this.budget,
+    this.travelerCount = 1,
+    this.dayItinerary = const <int, List<String>>{},
     required this.createdAt,
     required this.updatedAt,
   });
@@ -21,6 +24,9 @@ class Trip {
   final DateTime startDate;
   final DateTime endDate;
   final List<String> attractionIds;
+  final double? budget;
+  final int travelerCount;
+  final Map<int, List<String>> dayItinerary;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -29,6 +35,41 @@ class Trip {
   int get durationInDays {
     final diff = endDate.difference(startDate).inDays;
     return diff < 0 ? 0 : diff + 1;
+  }
+
+  /// Formatted available budget string (e.g. "$1500" or empty if unset).
+  String get formattedBudget {
+    if (budget == null || budget! <= 0) return '';
+    return '\$${budget!.toStringAsFixed(0)}';
+  }
+
+  /// Formatted travelers summary (e.g. "1 traveller", "4 travellers").
+  String get formattedTravelers =>
+      '$travelerCount ${travelerCount == 1 ? 'traveller' : 'travellers'}';
+
+  /// Resolves the day-by-day itinerary.
+  ///
+  /// If [dayItinerary] is populated, returns it. Otherwise, partitions
+  /// [attractionIds] across the trip's [durationInDays] days for a balanced
+  /// default schedule.
+  Map<int, List<String>> get resolvedDayItinerary {
+    if (dayItinerary.isNotEmpty) {
+      return Map<int, List<String>>.unmodifiable(
+        dayItinerary.map((k, v) => MapEntry(k, List<String>.unmodifiable(v))),
+      );
+    }
+    final days = durationInDays <= 0 ? 1 : durationInDays;
+    final map = <int, List<String>>{};
+    for (int i = 1; i <= days; i++) {
+      map[i] = <String>[];
+    }
+    for (int i = 0; i < attractionIds.length; i++) {
+      final dayIndex = (i % days) + 1;
+      map[dayIndex]!.add(attractionIds[i]);
+    }
+    return Map<int, List<String>>.unmodifiable(
+      map.map((k, v) => MapEntry(k, List<String>.unmodifiable(v))),
+    );
   }
 
   static const List<String> _months = [
@@ -92,6 +133,21 @@ class Trip {
       parsedAttractions = const <String>[];
     }
 
+    final rawDayItinerary = data['dayItinerary'];
+    final parsedDayItinerary = <int, List<String>>{};
+    if (rawDayItinerary is Map) {
+      rawDayItinerary.forEach((key, val) {
+        final dayNum = int.tryParse(key.toString());
+        if (dayNum != null && val is Iterable) {
+          final list = val
+              .map((e) => e?.toString().trim() ?? '')
+              .where((e) => e.isNotEmpty)
+              .toList();
+          parsedDayItinerary[dayNum] = list;
+        }
+      });
+    }
+
     final now = DateTime.now();
     final start = _parseDateTime(data['startDate'], fallback: now);
     final end = _parseDateTime(data['endDate'], fallback: start);
@@ -104,6 +160,9 @@ class Trip {
       startDate: start,
       endDate: end,
       attractionIds: List.unmodifiable(parsedAttractions),
+      budget: (data['budget'] as num?)?.toDouble(),
+      travelerCount: (data['travelerCount'] as num?)?.toInt() ?? 1,
+      dayItinerary: parsedDayItinerary,
       createdAt: _parseDateTime(data['createdAt'], fallback: now),
       updatedAt: _parseDateTime(data['updatedAt'], fallback: now),
     );
@@ -115,21 +174,27 @@ class Trip {
 
   /// Converts the trip to a Firestore-compatible map.
   Map<String, dynamic> toMap() {
-    return <String, dynamic>{
+    final map = <String, dynamic>{
       'userId': userId,
       'name': name.trim(),
       'destination': destination.trim(),
       'startDate': Timestamp.fromDate(startDate),
       'endDate': Timestamp.fromDate(endDate),
       'attractionIds': attractionIds,
+      'travelerCount': travelerCount,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
+    if (budget != null) map['budget'] = budget;
+    if (dayItinerary.isNotEmpty) {
+      map['dayItinerary'] = dayItinerary.map((k, v) => MapEntry(k.toString(), v));
+    }
+    return map;
   }
 
   /// Plain JSON-compatible map for serialization and offline tests.
   Map<String, dynamic> toRawMap() {
-    return <String, dynamic>{
+    final map = <String, dynamic>{
       'id': id,
       'userId': userId,
       'name': name.trim(),
@@ -137,9 +202,15 @@ class Trip {
       'startDate': startDate.toIso8601String(),
       'endDate': endDate.toIso8601String(),
       'attractionIds': attractionIds,
+      'travelerCount': travelerCount,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
+    if (budget != null) map['budget'] = budget;
+    if (dayItinerary.isNotEmpty) {
+      map['dayItinerary'] = dayItinerary.map((k, v) => MapEntry(k.toString(), v));
+    }
+    return map;
   }
 
   Trip copyWith({
@@ -150,6 +221,10 @@ class Trip {
     DateTime? startDate,
     DateTime? endDate,
     List<String>? attractionIds,
+    double? budget,
+    bool clearBudget = false,
+    int? travelerCount,
+    Map<int, List<String>>? dayItinerary,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -161,9 +236,11 @@ class Trip {
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       attractionIds: attractionIds ?? this.attractionIds,
+      budget: clearBudget ? null : (budget ?? this.budget),
+      travelerCount: travelerCount ?? this.travelerCount,
+      dayItinerary: dayItinerary ?? this.dayItinerary,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }
-
