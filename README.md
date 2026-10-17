@@ -29,7 +29,7 @@
 
 TourMate is a smart tourism platform that combines:
 
-> 🗺️ Explore + 📍 Location + 🤖 AI + 🧳 Trip Planning + ⭐ Reviews
+> 🗺️ Explore + 📍 Location + 🤖 AI + 🧳 Trip Planning + ⭐ Reviews + ⛅ Weather
 
 into one application.
 
@@ -40,6 +40,7 @@ into one application.
 | 🗺️ **Explore** | Discover tourist attractions |
 | 📍 **Maps** | Find destinations and routes |
 | 🤖 **AI Assistant** | Generate personalized travel plans |
+| ⛅ **Weather & Geocoding** | Live destination forecasts & geocoding via Open-Meteo ([Docs](docs/PHASE_9_REST_API.md)) |
 | ❤️ **Favorites** | Save destinations |
 | ⭐ **Reviews** | Rate and review attractions |
 | 🧳 **Trips** | Organize travel plans |

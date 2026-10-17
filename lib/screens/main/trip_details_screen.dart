@@ -11,15 +11,12 @@ import '../../services/recommendation_service.dart';
 import '../../services/trip_service.dart';
 import '../../widgets/attraction_card.dart';
 import '../../widgets/trip_form_sheet.dart';
+import '../../widgets/trip_weather_card.dart';
 
 /// Screen displaying the trip's itinerary and allowing day-by-day management,
 /// AI itinerary generation, reordering, and attraction management.
 class TripDetailsScreen extends StatefulWidget {
-  const TripDetailsScreen({
-    super.key,
-    required this.tripId,
-    this.initialTrip,
-  });
+  const TripDetailsScreen({super.key, required this.tripId, this.initialTrip});
 
   final String tripId;
   final Trip? initialTrip;
@@ -44,9 +41,11 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
 
   Future<void> _loadAttractions(List<String> attractionIds) async {
     final missingIds = attractionIds
-        .where((id) =>
-            !_attractionsCache.containsKey(id) &&
-            !_loadingAttractionIds.contains(id))
+        .where(
+          (id) =>
+              !_attractionsCache.containsKey(id) &&
+              !_loadingAttractionIds.contains(id),
+        )
         .toList();
     if (missingIds.isEmpty) return;
 
@@ -102,9 +101,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         if (context.mounted) {
           Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Trip "${trip.name}" deleted.'),
-            ),
+            SnackBar(content: Text('Trip "${trip.name}" deleted.')),
           );
         }
       } catch (e) {
@@ -124,7 +121,11 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     }
   }
 
-  Future<void> _removeAttraction(Trip trip, String attractionId, String attractionName) async {
+  Future<void> _removeAttraction(
+    Trip trip,
+    String attractionId,
+    String attractionName,
+  ) async {
     try {
       await TripService.instance.removeAttractionFromTrip(
         tripId: trip.id,
@@ -154,7 +155,11 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     }
   }
 
-  Future<void> _moveAttractionToDay(Trip trip, String attractionId, int targetDay) async {
+  Future<void> _moveAttractionToDay(
+    Trip trip,
+    String attractionId,
+    int targetDay,
+  ) async {
     try {
       await TripService.instance.moveAttractionToDay(
         tripId: trip.id,
@@ -173,7 +178,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e is TripServiceException ? e.message : 'Failed to move: $e'),
+            content: Text(
+              e is TripServiceException ? e.message : 'Failed to move: $e',
+            ),
             backgroundColor: Colors.red.shade700,
           ),
         );
@@ -181,7 +188,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     }
   }
 
-  Future<void> _showGenerateItineraryModal(BuildContext context, Trip trip) async {
+  Future<void> _showGenerateItineraryModal(
+    BuildContext context,
+    Trip trip,
+  ) async {
     final interests = Set<TravelInterest>.from(
       RecommendationService.instance.currentPreference.selectedInterests,
     );
@@ -200,13 +210,16 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.auto_awesome_rounded, color: AppTheme.primary, size: 22),
+                  const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: AppTheme.primary,
+                    size: 22,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Smart Itinerary Generator',
-                    style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                    style: Theme.of(ctx).textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                 ],
               ),
@@ -220,7 +233,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
               // Pacing Selection
               Text(
                 'Pacing (attractions / day):',
-                style: Theme.of(ctx).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                style: Theme.of(ctx).textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               SegmentedButton<int>(
@@ -230,14 +244,16 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                   ButtonSegment(value: 4, label: Text('Active (4)')),
                 ],
                 selected: {attractionsPerDay},
-                onSelectionChanged: (val) => setSheetState(() => attractionsPerDay = val.first),
+                onSelectionChanged: (val) =>
+                    setSheetState(() => attractionsPerDay = val.first),
               ),
               const SizedBox(height: 16),
 
               // Interests Selection
               Text(
                 'Prioritize interests:',
-                style: Theme.of(ctx).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                style: Theme.of(ctx).textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -246,7 +262,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                 children: TravelInterest.values.map((interest) {
                   final isSelected = interests.contains(interest);
                   return FilterChip(
-                    label: Text(interest.label, style: const TextStyle(fontSize: 12)),
+                    label: Text(
+                      interest.label,
+                      style: const TextStyle(fontSize: 12),
+                    ),
                     selected: isSelected,
                     onSelected: (selected) {
                       setSheetState(() {
@@ -266,7 +285,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                 key: const Key('confirm_generate_itinerary_button'),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size(0, 48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onPressed: () async {
                   Navigator.of(sheetContext).pop();
@@ -295,7 +316,11 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                   if (generated.allAttractionIds.isEmpty) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('No attractions found matching destination.')),
+                        const SnackBar(
+                          content: Text(
+                            'No attractions found matching destination.',
+                          ),
+                        ),
                       );
                     }
                     return;
@@ -326,7 +351,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     );
   }
 
-  int _findDayForAttraction(Map<int, List<String>> dayItinerary, String attractionId) {
+  int _findDayForAttraction(
+    Map<int, List<String>> dayItinerary,
+    String attractionId,
+  ) {
     for (final entry in dayItinerary.entries) {
       if (entry.value.contains(attractionId)) {
         return entry.key;
@@ -342,7 +370,11 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     return StreamBuilder<List<Trip>>(
       stream: TripService.instance.streamTrips(),
       builder: (context, snapshot) {
-        final trips = snapshot.data ?? (widget.initialTrip != null ? [widget.initialTrip!] : const <Trip>[]);
+        final trips =
+            snapshot.data ??
+            (widget.initialTrip != null
+                ? [widget.initialTrip!]
+                : const <Trip>[]);
         Trip? trip;
         for (final t in trips) {
           if (t.id == widget.tripId) {
@@ -365,12 +397,18 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline_rounded, size: 48, color: Colors.grey),
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    size: 48,
+                    color: Colors.grey,
+                  ),
                   const SizedBox(height: 16),
                   const Text('Trip not found or has been deleted.'),
                   const SizedBox(height: 16),
                   FilledButton(
-                    style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 40),
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text('Back to Trips'),
                   ),
@@ -412,7 +450,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                 onPressed: () => TripFormSheet.show(context, initialTrip: trip),
               ),
               IconButton(
-                icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade700),
+                icon: Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.red.shade700,
+                ),
                 tooltip: 'Delete Trip',
                 onPressed: () => _confirmDeleteTrip(context, trip!),
               ),
@@ -429,7 +470,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+                          theme.colorScheme.primaryContainer.withValues(
+                            alpha: 0.6,
+                          ),
                           theme.colorScheme.surface,
                         ],
                         begin: Alignment.topLeft,
@@ -437,7 +480,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                       ),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                        color: theme.colorScheme.primary.withValues(
+                          alpha: 0.15,
+                        ),
                       ),
                     ),
                     child: Column(
@@ -486,9 +531,14 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                               ],
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.1,
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -501,26 +551,39 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                               ),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+                                color: theme.colorScheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.6),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.people_alt_outlined, size: 14),
+                                  const Icon(
+                                    Icons.people_alt_outlined,
+                                    size: 14,
+                                  ),
                                   const SizedBox(width: 4),
                                   Text(
                                     trip.formattedTravelers,
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
                             if (trip.formattedBudget.isNotEmpty)
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.green.shade50,
                                   borderRadius: BorderRadius.circular(8),
@@ -542,6 +605,14 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                 ),
               ),
 
+              // Weather Forecast Sliver
+              SliverToBoxAdapter(
+                child: TripWeatherCard(
+                  key: const Key('trip_details_weather_card'),
+                  trip: trip,
+                ),
+              ),
+
               // Section Header
               SliverToBoxAdapter(
                 child: Padding(
@@ -556,7 +627,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.primaryContainer,
                           borderRadius: BorderRadius.circular(10),
@@ -597,18 +671,26 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                         if (index == 0) {
                           final isSelected = _selectedDay == null;
                           return ChoiceChip(
-                            label: const Text('All Days', style: TextStyle(fontSize: 12)),
+                            label: const Text(
+                              'All Days',
+                              style: TextStyle(fontSize: 12),
+                            ),
                             selected: isSelected,
-                            onSelected: (_) => setState(() => _selectedDay = null),
+                            onSelected: (_) =>
+                                setState(() => _selectedDay = null),
                           );
                         }
                         final dayNum = index;
                         final count = resolvedDays[dayNum]?.length ?? 0;
                         final isSelected = _selectedDay == dayNum;
                         return ChoiceChip(
-                          label: Text('Day $dayNum ($count)', style: const TextStyle(fontSize: 12)),
+                          label: Text(
+                            'Day $dayNum ($count)',
+                            style: const TextStyle(fontSize: 12),
+                          ),
                           selected: isSelected,
-                          onSelected: (_) => setState(() => _selectedDay = dayNum),
+                          onSelected: (_) =>
+                              setState(() => _selectedDay = dayNum),
                         );
                       },
                     ),
@@ -630,7 +712,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                             width: 72,
                             height: 72,
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.1,
+                              ),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -658,10 +742,16 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           FilledButton.icon(
                             style: FilledButton.styleFrom(
                               minimumSize: const Size(0, 42),
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                             ),
-                            onPressed: () => _showGenerateItineraryModal(context, trip!),
-                            icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+                            onPressed: () =>
+                                _showGenerateItineraryModal(context, trip!),
+                            icon: const Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 18,
+                            ),
                             label: const Text('Generate Smart Itinerary'),
                           ),
                         ],
@@ -679,7 +769,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                       if (oldIndex < newIndex) {
                         newIndex -= 1;
                       }
-                      final updatedList = List<String>.from(trip!.attractionIds);
+                      final updatedList = List<String>.from(
+                        trip!.attractionIds,
+                      );
                       final movedId = updatedList.removeAt(oldIndex);
                       updatedList.insert(newIndex, movedId);
 
@@ -691,7 +783,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                     itemBuilder: (context, index) {
                       final attractionId = displayedAttractionIds[index];
                       final attraction = _attractionsCache[attractionId];
-                      final dayNumber = _findDayForAttraction(resolvedDays, attractionId);
+                      final dayNumber = _findDayForAttraction(
+                        resolvedDays,
+                        attractionId,
+                      );
 
                       return ReorderableDelayedDragStartListener(
                         key: ValueKey(attractionId),
@@ -704,8 +799,13 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                             attraction: attraction,
                             dayNumber: dayNumber,
                             totalDays: trip!.durationInDays,
-                            isLoading: _loadingAttractions && attraction == null,
-                            onMoveToDay: (newDay) => _moveAttractionToDay(trip!, attractionId, newDay),
+                            isLoading:
+                                _loadingAttractions && attraction == null,
+                            onMoveToDay: (newDay) => _moveAttractionToDay(
+                              trip!,
+                              attractionId,
+                              newDay,
+                            ),
                             onRemove: () => _removeAttraction(
                               trip!,
                               attractionId,
@@ -794,17 +894,21 @@ class _ItineraryAttractionCard extends StatelessWidget {
                       ? Image.network(
                           attraction!.imageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            color: theme.colorScheme.primaryContainer,
-                            child: Icon(
-                              Icons.location_city_rounded,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                color: theme.colorScheme.primaryContainer,
+                                child: Icon(
+                                  Icons.location_city_rounded,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
                         )
                       : Container(
                           color: Colors.grey.shade200,
-                          child: const Icon(Icons.place_outlined, color: Colors.grey),
+                          child: const Icon(
+                            Icons.place_outlined,
+                            color: Colors.grey,
+                          ),
                         ),
                 ),
               ),
@@ -816,7 +920,8 @@ class _ItineraryAttractionCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      attraction?.name ?? (isLoading ? 'Loading...' : attractionId),
+                      attraction?.name ??
+                          (isLoading ? 'Loading...' : attractionId),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleSmall?.copyWith(
@@ -855,9 +960,13 @@ class _ItineraryAttractionCard extends StatelessWidget {
                           const SizedBox(width: 8),
                         ],
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.7),
+                            color: theme.colorScheme.secondaryContainer
+                                .withValues(alpha: 0.7),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -886,9 +995,13 @@ class _ItineraryAttractionCard extends StatelessWidget {
                       PopupMenuItem(
                         value: d,
                         child: Text(
-                          d == dayNumber ? 'Day $d (Current)' : 'Move to Day $d',
+                          d == dayNumber
+                              ? 'Day $d (Current)'
+                              : 'Move to Day $d',
                           style: TextStyle(
-                            fontWeight: d == dayNumber ? FontWeight.w800 : FontWeight.normal,
+                            fontWeight: d == dayNumber
+                                ? FontWeight.w800
+                                : FontWeight.normal,
                           ),
                         ),
                       ),

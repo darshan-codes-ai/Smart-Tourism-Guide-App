@@ -8,6 +8,7 @@ import '../services/trip_service.dart';
 import 'add_to_trip_sheet.dart';
 import 'category_chip.dart';
 import 'reviews_section.dart';
+import 'weather_section.dart';
 
 enum AttractionCardLayout { horizontal, vertical }
 
@@ -355,7 +356,8 @@ Future<void> showAttractionDetails(
                 width: double.infinity,
                 child: FilledButton.icon(
                   onPressed: () {
-                    final isAuthenticated = TripService.instance.isAuthenticated;
+                    final isAuthenticated =
+                        TripService.instance.isAuthenticated;
                     if (!isAuthenticated) {
                       showDialog<void>(
                         context: context,
@@ -392,6 +394,12 @@ Future<void> showAttractionDetails(
                     ),
                   ),
                 ),
+              ),
+              const SizedBox(height: 20),
+              WeatherSection(
+                latitude: attraction.latitude,
+                longitude: attraction.longitude,
+                destinationName: attraction.name,
               ),
               const SizedBox(height: 24),
               const Divider(height: 1),

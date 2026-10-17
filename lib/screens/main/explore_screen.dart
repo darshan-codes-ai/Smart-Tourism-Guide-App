@@ -6,6 +6,7 @@ import '../../models/attraction.dart';
 import '../../services/attraction_service.dart';
 import '../../widgets/attraction_card.dart';
 import '../../widgets/category_chip.dart';
+import '../../widgets/destination_search_sheet.dart';
 import 'map_screen.dart';
 
 enum ExploreSort { rating, distance }
@@ -28,10 +29,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   ExploreViewMode _viewMode = ExploreViewMode.list;
   int _retryKey = 0;
 
-  static const List<String> _categories = [
-    'All',
-    ...AppConstants.categories,
-  ];
+  static const List<String> _categories = ['All', ...AppConstants.categories];
 
   static const List<String> _destinations = [
     'All Destinations',
@@ -77,8 +75,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
           attraction.country.toLowerCase() ==
               _selectedDestination.toLowerCase() ||
           attraction.location.toLowerCase().contains(
-                _selectedDestination.toLowerCase(),
-              );
+            _selectedDestination.toLowerCase(),
+          );
 
       final matchesQuery =
           query.isEmpty ||
@@ -136,6 +134,21 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           icon: const Icon(Icons.search_rounded),
                           tooltip: 'Search',
                           onPressed: () => _searchFocusNode.requestFocus(),
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          key: const Key('explore_destination_weather_button'),
+                          icon: const Icon(Icons.cloud_outlined),
+                          tooltip: 'Destination Weather',
+                          onPressed: () => DestinationSearchSheet.show(
+                            context,
+                            initialQuery: _searchController.text.trim(),
+                            onDestinationSelected: (dest) {
+                              setState(() {
+                                _searchController.text = dest.name;
+                              });
+                            },
+                          ),
                         ),
                         const SizedBox(width: 4),
                         _ExploreViewToggle(
@@ -198,8 +211,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   } else {
                                     _selectedCategory =
                                         _selectedCategory == category
-                                            ? 'All'
-                                            : category;
+                                        ? 'All'
+                                        : category;
                                   }
                                 });
                               },
@@ -367,8 +380,36 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 }
 
                 if (attractions.isEmpty) {
-                  return const Center(
-                    child: Text('No attractions match your filters yet.'),
+                  final query = _searchController.text.trim();
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('No attractions match your filters yet.'),
+                          if (query.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            OutlinedButton.icon(
+                              key: const Key(
+                                'explore_search_global_destinations_button',
+                              ),
+                              onPressed: () => DestinationSearchSheet.show(
+                                context,
+                                initialQuery: query,
+                              ),
+                              icon: const Icon(
+                                Icons.travel_explore_rounded,
+                                size: 18,
+                              ),
+                              label: Text(
+                                'Search global destinations for "$query"',
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   );
                 }
 

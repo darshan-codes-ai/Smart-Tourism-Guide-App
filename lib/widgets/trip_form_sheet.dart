@@ -8,6 +8,7 @@ import '../services/attraction_service.dart';
 import '../services/itinerary_service.dart';
 import '../services/recommendation_service.dart';
 import '../services/trip_service.dart';
+import 'destination_search_sheet.dart';
 
 /// Modal bottom sheet for creating or editing a trip.
 class TripFormSheet extends StatefulWidget {
@@ -72,13 +73,15 @@ class _TripFormSheetState extends State<TripFormSheet> {
       text: widget.initialTrip?.destination ?? widget.initialDestination ?? '',
     );
     _budgetController = TextEditingController(
-      text: widget.initialTrip?.budget != null && widget.initialTrip!.budget! > 0
+      text:
+          widget.initialTrip?.budget != null && widget.initialTrip!.budget! > 0
           ? widget.initialTrip!.budget!.toStringAsFixed(0)
           : '',
     );
 
     _startDate = widget.initialTrip?.startDate ?? today;
-    _endDate = widget.initialTrip?.endDate ?? today.add(const Duration(days: 3));
+    _endDate =
+        widget.initialTrip?.endDate ?? today.add(const Duration(days: 3));
     _travelerCount = widget.initialTrip?.travelerCount ?? 1;
   }
 
@@ -91,11 +94,22 @@ class _TripFormSheetState extends State<TripFormSheet> {
   }
 
   static const List<String> _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
-  String _formatDate(DateTime d) => '${d.day} ${_months[d.month - 1]} ${d.year}';
+  String _formatDate(DateTime d) =>
+      '${d.day} ${_months[d.month - 1]} ${d.year}';
 
   Future<void> _pickStartDate() async {
     final now = DateTime.now();
@@ -152,7 +166,9 @@ class _TripFormSheetState extends State<TripFormSheet> {
     }
 
     final budgetText = _budgetController.text.trim();
-    final double? budget = budgetText.isEmpty ? null : double.tryParse(budgetText);
+    final double? budget = budgetText.isEmpty
+        ? null
+        : double.tryParse(budgetText);
     if (budgetText.isNotEmpty && (budget == null || budget < 0)) {
       setState(() {
         _errorMessage = 'Please enter a valid positive budget.';
@@ -197,7 +213,10 @@ class _TripFormSheetState extends State<TripFormSheet> {
 
         if (_autoGenerateItinerary) {
           final pool = await _fetchAttractionPool();
-          final userInterests = RecommendationService.instance.currentPreference.selectedInterests;
+          final userInterests = RecommendationService
+              .instance
+              .currentPreference
+              .selectedInterests;
           final generated = ItineraryService.instance.generateItinerary(
             destination: _destinationController.text.trim(),
             startDate: _startDate,
@@ -228,7 +247,9 @@ class _TripFormSheetState extends State<TripFormSheet> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e is TripServiceException ? e.message : 'Error saving trip: $e';
+          _errorMessage = e is TripServiceException
+              ? e.message
+              : 'Error saving trip: $e';
           _submitting = false;
         });
       }
@@ -292,7 +313,8 @@ class _TripFormSheetState extends State<TripFormSheet> {
                 validator: (value) {
                   final text = value?.trim() ?? '';
                   if (text.isEmpty) return 'Please enter a trip name.';
-                  if (text.length > 100) return 'Name cannot exceed 100 characters.';
+                  if (text.length > 100)
+                    return 'Name cannot exceed 100 characters.';
                   return null;
                 },
               ),
@@ -307,6 +329,22 @@ class _TripFormSheetState extends State<TripFormSheet> {
                   labelText: 'Destination *',
                   hintText: 'e.g. Paris, France',
                   prefixIcon: const Icon(Icons.location_on_outlined),
+                  suffixIcon: IconButton(
+                    key: const Key('trip_form_search_destination_button'),
+                    icon: const Icon(Icons.travel_explore_rounded),
+                    tooltip: 'Search Worldwide Destinations',
+                    onPressed: () async {
+                      final selected = await DestinationSearchSheet.show(
+                        context,
+                        initialQuery: _destinationController.text.trim(),
+                      );
+                      if (selected != null) {
+                        setState(() {
+                          _destinationController.text = selected.name;
+                        });
+                      }
+                    },
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -314,7 +352,8 @@ class _TripFormSheetState extends State<TripFormSheet> {
                 validator: (value) {
                   final text = value?.trim() ?? '';
                   if (text.isEmpty) return 'Please enter a destination.';
-                  if (text.length > 100) return 'Destination cannot exceed 100 characters.';
+                  if (text.length > 100)
+                    return 'Destination cannot exceed 100 characters.';
                   return null;
                 },
               ),
@@ -330,7 +369,10 @@ class _TripFormSheetState extends State<TripFormSheet> {
                       child: InputDecorator(
                         decoration: InputDecoration(
                           labelText: 'Start Date',
-                          prefixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
+                          prefixIcon: const Icon(
+                            Icons.calendar_today_outlined,
+                            size: 20,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -352,7 +394,10 @@ class _TripFormSheetState extends State<TripFormSheet> {
                       child: InputDecorator(
                         decoration: InputDecoration(
                           labelText: 'End Date',
-                          prefixIcon: const Icon(Icons.event_outlined, size: 20),
+                          prefixIcon: const Icon(
+                            Icons.event_outlined,
+                            size: 20,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -379,11 +424,16 @@ class _TripFormSheetState extends State<TripFormSheet> {
                     flex: 3,
                     child: TextFormField(
                       controller: _budgetController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: InputDecoration(
                         labelText: 'Budget (optional)',
                         hintText: 'e.g. 1500',
-                        prefixIcon: const Icon(Icons.attach_money_rounded, size: 20),
+                        prefixIcon: const Icon(
+                          Icons.attach_money_rounded,
+                          size: 20,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -407,7 +457,9 @@ class _TripFormSheetState extends State<TripFormSheet> {
                       height: 56,
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       decoration: BoxDecoration(
-                        border: Border.all(color: theme.colorScheme.outlineVariant),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant,
+                        ),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -426,11 +478,19 @@ class _TripFormSheetState extends State<TripFormSheet> {
                             children: [
                               Text(
                                 '$_travelerCount',
-                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                ),
                               ),
                               Text(
-                                _travelerCount == 1 ? 'Traveller' : 'Travellers',
-                                style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurfaceVariant),
+                                _travelerCount == 1
+                                    ? 'Traveller'
+                                    : 'Travellers',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
                               ),
                             ],
                           ),
@@ -454,10 +514,15 @@ class _TripFormSheetState extends State<TripFormSheet> {
                   color: AppTheme.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+                      border: Border.all(
+                        color: AppTheme.primary.withValues(alpha: 0.2),
+                      ),
                     ),
                     child: SwitchListTile(
                       key: const Key('trip_form_auto_itinerary_switch'),
@@ -466,14 +531,21 @@ class _TripFormSheetState extends State<TripFormSheet> {
                       contentPadding: EdgeInsets.zero,
                       title: const Text(
                         'Generate Smart Itinerary',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
                       ),
                       subtitle: const Text(
                         'Auto-schedule recommended attractions for this destination across trip days',
                         style: TextStyle(fontSize: 11),
                       ),
-                      secondary: const Icon(Icons.auto_awesome_rounded, color: AppTheme.primary),
-                      onChanged: (val) => setState(() => _autoGenerateItinerary = val),
+                      secondary: const Icon(
+                        Icons.auto_awesome_rounded,
+                        color: AppTheme.primary,
+                      ),
+                      onChanged: (val) =>
+                          setState(() => _autoGenerateItinerary = val),
                     ),
                   ),
                 ),
