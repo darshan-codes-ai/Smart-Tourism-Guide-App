@@ -4,12 +4,16 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:tourmate/core/theme/app_theme.dart';
 import 'package:tourmate/models/app_user.dart';
 import 'package:tourmate/models/attraction.dart';
+import 'package:tourmate/models/review.dart';
+import 'package:tourmate/models/trip.dart';
 import 'package:tourmate/screens/admin/admin_dashboard_screen.dart';
 import 'package:tourmate/screens/admin/attraction_form_dialog.dart';
 import 'package:tourmate/screens/main/profile_screen.dart';
 import 'package:tourmate/services/admin_service.dart';
 import 'package:tourmate/services/attraction_service.dart';
 import 'package:tourmate/services/firestore_service.dart';
+import 'package:tourmate/services/review_service.dart';
+import 'package:tourmate/services/trip_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -58,6 +62,8 @@ void main() {
     AttractionService.testAttractions = null;
     AttractionService.testStream = null;
     AttractionService.testAttractionsStreamController = null;
+    ReviewService.resetForTest();
+    TripService.resetForTest();
   });
 
   tearDown(() {
@@ -69,6 +75,8 @@ void main() {
     AttractionService.testStream = null;
     AttractionService.testAttractionsStreamController?.close();
     AttractionService.testAttractionsStreamController = null;
+    ReviewService.resetForTest();
+    TripService.resetForTest();
   });
 
   group('1. Admin Authorization & Profile Tests', () {
@@ -533,6 +541,250 @@ void main() {
 
       expect(find.byKey(const Key('admin_dashboard_profile_tile')), findsOneWidget);
       expect(find.text('Admin Dashboard'), findsOneWidget);
+    });
+  });
+
+  group('7. Admin Dashboard Stats & Country Filter Tests', () {
+    test('AdminService.getDashboardStats calculates comprehensive metrics', () async {
+      AdminService.testIsAdminOverride = true;
+      ReviewService.testReviews = {
+        'eiffel-tower': [
+          Review(
+            id: 'rev-1',
+            attractionId: 'eiffel-tower',
+            userId: 'u1',
+            userName: 'Traveler 1',
+            rating: 5.0,
+            comment: 'Stunning!',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        ],
+        'colosseum': [
+          Review(
+            id: 'rev-2',
+            attractionId: 'colosseum',
+            userId: 'u2',
+            userName: 'Traveler 2',
+            rating: 4.0,
+            comment: 'Historic!',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        ],
+      };
+      FirestoreService.testUsers = {
+        'u1': const AppUser(uid: 'u1', provider: 'password', role: 'user'),
+        'u2': const AppUser(uid: 'u2', provider: 'google', role: 'user'),
+      };
+      TripService.testTrips = {
+        'u1': [
+          Trip(
+            id: 'trip-1',
+            userId: 'u1',
+            name: 'Paris 2026',
+            destination: 'Paris',
+            startDate: DateTime(2026, 11, 1),
+            endDate: DateTime(2026, 11, 5),
+            attractionIds: ['eiffel-tower'],
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        ],
+      };
+
+      final stats = await AdminService.instance.getDashboardStats([
+        sampleAttraction1,
+        sampleAttraction2,
+      ]);
+
+      expect(stats.totalAttractions, 2);
+      expect(stats.averageRating, 4.75); // (4.8 + 4.7) / 2 = 4.75
+      expect(stats.totalReviews, 2);
+      expect(stats.totalUsers, 2);
+      expect(stats.totalTrips, 1);
+      expect(stats.usersRestricted, isFalse);
+      expect(stats.tripsRestricted, isFalse);
+    });
+
+    testWidgets('country filter chips filter attractions by country and can be cleared', (tester) async {
+      AdminService.testIsAdminOverride = true;
+      AttractionService.testAttractions = {
+        sampleAttraction1.id: sampleAttraction1, // France
+        sampleAttraction2.id: sampleAttraction2, // Italy
+      };
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          home: const AdminDashboardScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Eiffel Tower'), findsOneWidget);
+      expect(find.text('Colosseum'), findsOneWidget);
+
+      // Select France
+      await tester.ensureVisible(find.text('France (1)'));
+      await tester.tap(find.text('France (1)'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Eiffel Tower'), findsOneWidget);
+      expect(find.text('Colosseum'), findsNothing);
+
+      // Select All Countries resets
+      await tester.ensureVisible(find.text('All Countries'));
+      await tester.tap(find.text('All Countries'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Eiffel Tower'), findsOneWidget);
+      expect(find.text('Colosseum'), findsOneWidget);
+    });
+  });
+
+  group('8. Review Moderation Admin Workflow Tests', () {
+    test('moderateDeleteReview removes review when caller is administrator', () async {
+      AdminService.testIsAdminOverride = true;
+      ReviewService.testReviews = {
+        'eiffel-tower': [
+          Review(
+            id: 'rev-spam',
+            attractionId: 'eiffel-tower',
+            userId: 'spammer',
+            userName: 'SpamUser',
+            rating: 1.0,
+            comment: 'Inappropriate spam comment.',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        ],
+      };
+
+      expect(ReviewService.testReviews!['eiffel-tower']!.length, 1);
+
+      await ReviewService.instance.moderateDeleteReview(
+        attractionId: 'eiffel-tower',
+        reviewId: 'rev-spam',
+      );
+
+      expect(ReviewService.testReviews!['eiffel-tower']!.isEmpty, isTrue);
+    });
+
+    test('moderateDeleteReview throws AdminAuthorizationException when caller is not admin', () async {
+      AdminService.testIsAdminOverride = false;
+      ReviewService.testReviews = {
+        'eiffel-tower': [
+          Review(
+            id: 'rev-test',
+            attractionId: 'eiffel-tower',
+            userId: 'user-normal',
+            userName: 'NormalUser',
+            rating: 5.0,
+            comment: 'Great view!',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        ],
+      };
+
+      expect(
+        () => ReviewService.instance.moderateDeleteReview(
+          attractionId: 'eiffel-tower',
+          reviewId: 'rev-test',
+        ),
+        throwsA(isA<AdminAuthorizationException>()),
+      );
+    });
+
+    testWidgets('admin can switch to Review Moderation tab and delete review with confirmation', (tester) async {
+      AdminService.testIsAdminOverride = true;
+      AttractionService.testAttractions = {sampleAttraction1.id: sampleAttraction1};
+      ReviewService.testReviews = {
+        'eiffel-tower': [
+          Review(
+            id: 'rev-inappropriate',
+            attractionId: 'eiffel-tower',
+            userId: 'bad-user',
+            userName: 'TrollUser',
+            rating: 1.0,
+            comment: 'Very inappropriate text.',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        ],
+      };
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          home: const AdminDashboardScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Switch to Review Moderation tab
+      await tester.tap(find.text('Review Moderation'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('TrollUser'), findsOneWidget);
+      expect(find.text('Very inappropriate text.'), findsOneWidget);
+      expect(find.text('Flagged: Low Rating'), findsOneWidget);
+
+      // Tap Remove Review
+      await tester.tap(find.byKey(const Key('admin_delete_review_button_rev-inappropriate')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Moderate Review'), findsOneWidget);
+      expect(find.byKey(const Key('admin_mod_confirm_button')), findsOneWidget);
+
+      // Confirm removal
+      await tester.tap(find.byKey(const Key('admin_mod_confirm_button')));
+      await tester.pumpAndSettle();
+
+      expect(ReviewService.testReviews!['eiffel-tower']!.isEmpty, isTrue);
+    });
+  });
+
+  group('9. Users & Security Audit View Tests', () {
+    testWidgets('admin can switch to Users & Security tab and view registered accounts and policy', (tester) async {
+      AdminService.testIsAdminOverride = true;
+      AttractionService.testAttractions = {sampleAttraction1.id: sampleAttraction1};
+      FirestoreService.testUsers = {
+        'admin_1': const AppUser(
+          uid: 'admin_1',
+          name: 'Super Admin',
+          email: 'admin@tourmate.app',
+          provider: 'password',
+          role: 'admin',
+        ),
+        'traveler_1': const AppUser(
+          uid: 'traveler_1',
+          name: 'Jane Traveler',
+          email: 'jane@example.com',
+          provider: 'google',
+          role: 'user',
+        ),
+      };
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          home: const AdminDashboardScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Switch to Users & Security tab
+      await tester.tap(find.text('Users & Security'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Security & Access Control Architecture'), findsOneWidget);
+      expect(find.text('Registered User Accounts (Audit Directory)'), findsOneWidget);
+      expect(find.text('Super Admin'), findsOneWidget);
+      expect(find.text('ADMIN'), findsOneWidget);
+      expect(find.text('Jane Traveler'), findsOneWidget);
+      expect(find.text('USER'), findsOneWidget);
     });
   });
 }

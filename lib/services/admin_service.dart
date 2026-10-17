@@ -2,8 +2,45 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../models/attraction.dart';
+import '../models/review.dart';
 import 'auth_service.dart';
 import 'firestore_service.dart';
+import 'review_service.dart';
+import 'trip_service.dart';
+
+/// Aggregated dataset statistics for the Admin Dashboard.
+class AdminDashboardStats {
+  const AdminDashboardStats({
+    required this.totalAttractions,
+    required this.averageRating,
+    required this.totalReviews,
+    this.totalUsers,
+    this.totalTrips,
+    this.usersRestricted = false,
+    this.tripsRestricted = false,
+    this.topCategory = 'None',
+    this.topCategoryCount = 0,
+    this.topCountry = 'None',
+    this.topCountryCount = 0,
+    this.recentAttractions = const <Attraction>[],
+    this.recentReviews = const <Review>[],
+  });
+
+  final int totalAttractions;
+  final double averageRating;
+  final int totalReviews;
+  final int? totalUsers;
+  final int? totalTrips;
+  final bool usersRestricted;
+  final bool tripsRestricted;
+  final String topCategory;
+  final int topCategoryCount;
+  final String topCountry;
+  final int topCountryCount;
+  final List<Attraction> recentAttractions;
+  final List<Review> recentReviews;
+}
 
 /// Exception thrown when an administrative action is attempted without authorization.
 class AdminAuthorizationException implements Exception {
@@ -113,6 +150,73 @@ class AdminService {
       if (user == null) return false;
       return isCurrentUserAdmin();
     });
+  }
+
+  /// Calculates and aggregates reliable dashboard statistics from database sources.
+  Future<AdminDashboardStats> getDashboardStats(List<Attraction> attractions) async {
+    final totalAttractions = attractions.length;
+    final averageRating = totalAttractions == 0
+        ? 0.0
+        : attractions.map((a) => a.rating).reduce((a, b) => a + b) / totalAttractions;
+
+    final categoryCounts = <String, int>{};
+    final countryCounts = <String, int>{};
+    for (final a in attractions) {
+      final cat = a.category.trim();
+      if (cat.isNotEmpty) {
+        categoryCounts[cat] = (categoryCounts[cat] ?? 0) + 1;
+      }
+      final country = a.country.trim();
+      if (country.isNotEmpty) {
+        countryCounts[country] = (countryCounts[country] ?? 0) + 1;
+      }
+    }
+
+    String topCat = 'None';
+    int topCatCount = 0;
+    categoryCounts.forEach((cat, count) {
+      if (count > topCatCount) {
+        topCat = cat;
+        topCatCount = count;
+      }
+    });
+
+    String topCountry = 'None';
+    int topCountryCount = 0;
+    countryCounts.forEach((country, count) {
+      if (count > topCountryCount) {
+        topCountry = country;
+        topCountryCount = count;
+      }
+    });
+
+    // Total reviews & recent reviews
+    final totalReviews = await ReviewService.instance.getTotalReviewsCount();
+    final recentReviews = await ReviewService.instance.getRecentReviews(limit: 5);
+
+    // Total users (respecting security boundaries)
+    final usersCount = await FirestoreService.instance.getTotalUsersCount();
+    final usersRestricted = usersCount == null;
+
+    // Total trips (respecting security boundaries)
+    final tripsCount = await TripService.instance.getTotalTripsCount();
+    final tripsRestricted = tripsCount == null;
+
+    return AdminDashboardStats(
+      totalAttractions: totalAttractions,
+      averageRating: double.parse(averageRating.toStringAsFixed(2)),
+      totalReviews: totalReviews,
+      totalUsers: usersCount,
+      totalTrips: tripsCount,
+      usersRestricted: usersRestricted,
+      tripsRestricted: tripsRestricted,
+      topCategory: topCat,
+      topCategoryCount: topCatCount,
+      topCountry: topCountry,
+      topCountryCount: topCountryCount,
+      recentAttractions: attractions.take(5).toList(),
+      recentReviews: recentReviews,
+    );
   }
 }
 

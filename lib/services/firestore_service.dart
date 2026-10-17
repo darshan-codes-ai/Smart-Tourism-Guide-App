@@ -214,4 +214,35 @@ class FirestoreService {
     final doc = await favorites.doc(attractionId).get();
     return doc.exists;
   }
+
+  /// Returns total registered users count if accessible, or null if restricted by security rules.
+  Future<int?> getTotalUsersCount() async {
+    if (testUsers != null) {
+      return testUsers!.length;
+    }
+    final users = _users;
+    if (users == null) return null;
+    try {
+      final snapshot = await users.count().get();
+      return snapshot.count;
+    } catch (_) {
+      // Live Firestore security rules restrict reading /users collection without Admin SDK
+      return null;
+    }
+  }
+
+  /// Retrieves a list of users for administrator audit.
+  Future<List<AppUser>> getUsersForAdmin({int limit = 50}) async {
+    if (testUsers != null) {
+      return testUsers!.values.take(limit).toList();
+    }
+    final users = _users;
+    if (users == null) return const <AppUser>[];
+    try {
+      final snapshot = await users.limit(limit).get();
+      return snapshot.docs.map((doc) => AppUser.fromMap(doc.data())).toList();
+    } catch (_) {
+      return const <AppUser>[];
+    }
+  }
 }

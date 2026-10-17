@@ -11,15 +11,20 @@ class ReviewsSection extends StatelessWidget {
     super.key,
     required this.attractionId,
     this.attractionName,
+    this.currentUserId,
+    this.currentUserName,
   });
 
   final String attractionId;
   final String? attractionName;
+  final String? currentUserId;
+  final String? currentUserName;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final currentUser = AuthService.instance.currentUser;
+    final activeUserId = currentUserId ?? AuthService.instance.currentUser?.uid;
+    final isAuthenticated = activeUserId != null && activeUserId.isNotEmpty;
 
     return StreamBuilder<List<Review>>(
       stream: ReviewService.instance.streamReviews(attractionId),
@@ -79,9 +84,9 @@ class ReviewsSection extends StatelessWidget {
               );
 
         Review? userReview;
-        if (currentUser != null) {
+        if (isAuthenticated) {
           try {
-            userReview = reviews.firstWhere((r) => r.userId == currentUser.uid);
+            userReview = reviews.firstWhere((r) => r.userId == activeUserId);
           } catch (_) {
             userReview = null;
           }
@@ -101,6 +106,7 @@ class ReviewsSection extends StatelessWidget {
                   ),
                 ),
                 TextButton.icon(
+                  key: const Key('reviews_section_write_button'),
                   onPressed: () => _handleWriteOrEditReview(
                     context,
                     attractionId,
@@ -135,7 +141,7 @@ class ReviewsSection extends StatelessWidget {
                 separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final review = reviews[index];
-                  final isOwner = currentUser?.uid == review.userId;
+                  final isOwner = isAuthenticated && activeUserId == review.userId;
                   return _ReviewCard(
                     review: review,
                     isOwner: isOwner,
@@ -164,8 +170,13 @@ class ReviewsSection extends StatelessWidget {
     String attractionId, {
     Review? existingReview,
   }) {
-    final currentUser = AuthService.instance.currentUser;
-    if (currentUser == null) {
+    final activeUid = currentUserId ?? AuthService.instance.currentUser?.uid;
+    final activeName = currentUserName ??
+        AuthService.instance.currentUser?.displayName ??
+        AuthService.instance.currentUser?.email?.split('@').first ??
+        'Traveler';
+
+    if (activeUid == null || activeUid.isEmpty) {
       showDialog<void>(
         context: context,
         builder: (dialogContext) {
@@ -213,10 +224,8 @@ class ReviewsSection extends StatelessWidget {
         return _WriteReviewSheet(
           attractionId: attractionId,
           existingReview: existingReview,
-          currentUserId: currentUser.uid,
-          currentUserName: currentUser.displayName ??
-              currentUser.email?.split('@').first ??
-              'Traveler',
+          currentUserId: activeUid,
+          currentUserName: activeName,
         );
       },
     );
@@ -245,6 +254,7 @@ class ReviewsSection extends StatelessWidget {
               child: const Text('Cancel'),
             ),
             FilledButton(
+              key: const Key('confirm_delete_review_button'),
               style: FilledButton.styleFrom(
                 backgroundColor: Colors.red.shade700,
               ),
@@ -525,6 +535,7 @@ class _ReviewCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton.icon(
+                  key: Key('review_card_edit_button_${review.id}'),
                   onPressed: onEdit,
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -536,6 +547,7 @@ class _ReviewCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 TextButton.icon(
+                  key: Key('review_card_delete_button_${review.id}'),
                   onPressed: onDelete,
                   style: TextButton.styleFrom(
                     foregroundColor: Colors.red.shade700,
@@ -726,6 +738,7 @@ class _WriteReviewSheetState extends State<_WriteReviewSheet> {
                 final starIndex = index + 1;
                 final isSelected = _rating >= starIndex;
                 return IconButton(
+                  key: Key('write_review_star_$starIndex'),
                   onPressed: _isSubmitting
                       ? null
                       : () => setState(() => _rating = starIndex.toDouble()),
@@ -756,6 +769,7 @@ class _WriteReviewSheetState extends State<_WriteReviewSheet> {
             ),
             const SizedBox(height: 8),
             TextField(
+              key: const Key('write_review_comment_field'),
               controller: _commentController,
               enabled: !_isSubmitting,
               maxLines: 4,
@@ -769,6 +783,7 @@ class _WriteReviewSheetState extends State<_WriteReviewSheet> {
             ),
             const SizedBox(height: 16),
             FilledButton(
+              key: const Key('write_review_submit_button'),
               onPressed: _isSubmitting ? null : _submit,
               child: _isSubmitting
                   ? const SizedBox(

@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/review.dart';
+import 'admin_service.dart';
 
 class ReviewServiceException implements Exception {
   const ReviewServiceException(this.message);
@@ -28,6 +29,10 @@ class ReviewService {
   @visibleForTesting
   static Stream<List<Review>> Function(String attractionId)? testStreamReviews;
 
+  /// Test stream controllers per attraction for testing real-time review updates.
+  @visibleForTesting
+  static Map<String, StreamController<List<Review>>>? testControllers;
+
   /// Set of in-flight review submissions to prevent duplicate double-posts.
   final Set<String> _inFlightSubmissions = <String>{};
 
@@ -35,6 +40,26 @@ class ReviewService {
   static void resetForTest() {
     testReviews = null;
     testStreamReviews = null;
+    if (testControllers != null) {
+      for (final controller in testControllers!.values) {
+        if (!controller.isClosed) {
+          controller.close();
+        }
+      }
+      testControllers = null;
+    }
+  }
+
+  void _notifyTestStream(String attractionId) {
+    final cleanId = attractionId.trim();
+    if (testControllers != null && testControllers!.containsKey(cleanId)) {
+      final controller = testControllers![cleanId];
+      if (controller != null && !controller.isClosed) {
+        final list = List<Review>.from(testReviews?[cleanId] ?? const <Review>[]);
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        controller.add(list);
+      }
+    }
   }
 
   FirebaseFirestore? get _firestore {
@@ -53,18 +78,32 @@ class ReviewService {
 
   /// Streams real-time reviews for [attractionId] sorted by most recent first.
   Stream<List<Review>> streamReviews(String attractionId) {
-    if (attractionId.trim().isEmpty) {
+    final cleanAttractionId = attractionId.trim();
+    if (cleanAttractionId.isEmpty) {
       return Stream.value(const <Review>[]);
     }
 
     if (testStreamReviews != null) {
-      return testStreamReviews!(attractionId);
+      return testStreamReviews!(cleanAttractionId);
     }
 
     if (testReviews != null) {
-      final list = List<Review>.from(testReviews![attractionId] ?? const <Review>[]);
-      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return Stream.value(list);
+      testControllers ??= <String, StreamController<List<Review>>>{};
+      var controller = testControllers![cleanAttractionId];
+      if (controller == null || controller.isClosed) {
+        controller = StreamController<List<Review>>.broadcast();
+        testControllers![cleanAttractionId] = controller;
+      }
+
+      final initialList = List<Review>.from(testReviews?[cleanAttractionId] ?? const <Review>[]);
+      initialList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      Stream<List<Review>> generator() async* {
+        yield initialList;
+        yield* controller!.stream;
+      }
+
+      return generator();
     }
 
     final collection = _reviewsRef(attractionId);
@@ -104,6 +143,86 @@ class ReviewService {
     });
   }
 
+  /// Calculates or retrieves aggregate rating information for [attractionId].
+  Future<({double averageRating, int totalReviews})> getRatingSummary(
+    String attractionId,
+  ) async {
+    final cleanAttractionId = attractionId.trim();
+    if (cleanAttractionId.isEmpty) {
+      return (averageRating: 0.0, totalReviews: 0);
+    }
+
+    if (testReviews != null) {
+      final list = testReviews![cleanAttractionId] ?? const <Review>[];
+      if (list.isEmpty) return (averageRating: 0.0, totalReviews: 0);
+      final sum = list.fold<double>(0.0, (acc, r) => acc + r.rating);
+      final avg = double.parse((sum / list.length).toStringAsFixed(1));
+      return (averageRating: avg, totalReviews: list.length);
+    }
+
+    final collection = _reviewsRef(cleanAttractionId);
+    if (collection == null) {
+      return (averageRating: 0.0, totalReviews: 0);
+    }
+
+    try {
+      final snapshot = await collection.get();
+      if (snapshot.docs.isEmpty) {
+        return (averageRating: 0.0, totalReviews: 0);
+      }
+      final reviews = snapshot.docs
+          .map((doc) => Review.fromFirestore(
+                doc.id,
+                doc.data(),
+                attractionId: cleanAttractionId,
+              ))
+          .toList();
+      final sum = reviews.fold<double>(0.0, (acc, r) => acc + r.rating);
+      final avg = double.parse((sum / reviews.length).toStringAsFixed(1));
+      return (averageRating: avg, totalReviews: reviews.length);
+    } catch (_) {
+      return (averageRating: 0.0, totalReviews: 0);
+    }
+  }
+
+  /// Retrieves the review submitted by [userId] for [attractionId], or null if none exists.
+  Future<Review?> getUserReview({
+    required String attractionId,
+    required String userId,
+  }) async {
+    final cleanAttractionId = attractionId.trim();
+    final cleanUserId = userId.trim();
+    if (cleanAttractionId.isEmpty || cleanUserId.isEmpty) return null;
+
+    if (testReviews != null) {
+      final list = testReviews![cleanAttractionId] ?? <Review>[];
+      try {
+        return list.firstWhere((r) => r.userId == cleanUserId);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final collection = _reviewsRef(cleanAttractionId);
+    if (collection == null) return null;
+
+    try {
+      final query = await collection
+          .where('userId', isEqualTo: cleanUserId)
+          .limit(1)
+          .get();
+      if (query.docs.isEmpty) return null;
+      final doc = query.docs.first;
+      return Review.fromFirestore(
+        doc.id,
+        doc.data(),
+        attractionId: cleanAttractionId,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Submits a new review for [attractionId].
   Future<Review> createReview({
     required String attractionId,
@@ -136,6 +255,17 @@ class ReviewService {
       );
     }
 
+    // Prevent duplicate reviews from the same user for the same attraction
+    final existingUserReview = await getUserReview(
+      attractionId: cleanAttractionId,
+      userId: cleanUserId,
+    );
+    if (existingUserReview != null) {
+      throw const ReviewServiceException(
+        'You have already reviewed this attraction. You can edit your existing review instead.',
+      );
+    }
+
     // Prevent duplicate in-flight submissions
     final submissionKey = '$cleanAttractionId:$cleanUserId';
     if (_inFlightSubmissions.contains(submissionKey)) {
@@ -161,6 +291,7 @@ class ReviewService {
           updatedAt: now,
         );
         testReviews!.putIfAbsent(cleanAttractionId, () => <Review>[]).add(review);
+        _notifyTestStream(cleanAttractionId);
         return review;
       }
 
@@ -173,7 +304,7 @@ class ReviewService {
       final data = {
         'userId': cleanUserId,
         'userName': cleanUserName,
-        'rating': rating,
+        'rating': rating.round(),
         'comment': cleanComment,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
@@ -253,6 +384,7 @@ class ReviewService {
             comment: cleanComment,
             updatedAt: DateTime.now(),
           );
+          _notifyTestStream(cleanAttractionId);
         }
         return;
       }
@@ -264,7 +396,7 @@ class ReviewService {
 
       final docRef = collection.doc(cleanReviewId);
       await docRef.update({
-        'rating': rating,
+        'rating': rating.round(),
         'comment': cleanComment,
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -309,6 +441,7 @@ class ReviewService {
             );
           }
           list.removeAt(index);
+          _notifyTestStream(cleanAttractionId);
         }
         return;
       }
@@ -328,6 +461,101 @@ class ReviewService {
       throw const ReviewServiceException(
         'Failed to delete review. Please try again.',
       );
+    }
+  }
+
+  /// Returns total reviews count across all attractions.
+  Future<int> getTotalReviewsCount() async {
+    if (testReviews != null) {
+      return testReviews!.values.fold<int>(0, (acc, list) => acc + list.length);
+    }
+    final firestore = _firestore;
+    if (firestore == null) return 0;
+    try {
+      final snapshot = await firestore.collectionGroup('reviews').count().get();
+      return snapshot.count ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// Retrieves recent reviews across all attractions for administrative moderation.
+  Future<List<Review>> getRecentReviews({int limit = 50}) async {
+    if (testReviews != null) {
+      final allReviews = <Review>[];
+      for (final list in testReviews!.values) {
+        allReviews.addAll(list);
+      }
+      allReviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return allReviews.take(limit).toList();
+    }
+
+    final firestore = _firestore;
+    if (firestore == null) return const <Review>[];
+
+    try {
+      final query = await firestore
+          .collectionGroup('reviews')
+          .orderBy('createdAt', descending: true)
+          .limit(limit)
+          .get();
+
+      return query.docs.map((doc) {
+        final attractionId = doc.reference.parent.parent?.id ?? '';
+        return Review.fromFirestore(
+          doc.id,
+          doc.data(),
+          attractionId: attractionId,
+        );
+      }).toList();
+    } catch (_) {
+      return const <Review>[];
+    }
+  }
+
+  /// Moderates and deletes a review as an authorized administrator.
+  /// Throws [AdminAuthorizationException] if the current user is not an administrator.
+  Future<void> moderateDeleteReview({
+    required String attractionId,
+    required String reviewId,
+  }) async {
+    final cleanAttractionId = attractionId.trim();
+    final cleanReviewId = reviewId.trim();
+
+    if (cleanAttractionId.isEmpty || cleanReviewId.isEmpty) {
+      throw const ReviewServiceException('Invalid review reference.');
+    }
+
+    // Asserts administrative privileges (fail-closed)
+    await AdminService.instance.assertAdmin();
+
+    try {
+      if (testReviews != null) {
+        final list = testReviews![cleanAttractionId] ?? <Review>[];
+        final index = list.indexWhere((r) => r.id == cleanReviewId);
+        if (index >= 0) {
+          list.removeAt(index);
+          _notifyTestStream(cleanAttractionId);
+        }
+        return;
+      }
+
+      final collection = _reviewsRef(cleanAttractionId);
+      if (collection == null) {
+        throw const ReviewServiceException('Firebase is not initialized.');
+      }
+
+      await collection.doc(cleanReviewId).delete();
+    } on FirebaseException catch (e) {
+      throw ReviewServiceException(
+        e.message ?? 'Failed to moderate review. Please check Firestore security rules.',
+      );
+    } catch (e) {
+      if (e is ReviewServiceException) rethrow;
+      if (e is AdminAuthorizationException) {
+        throw ReviewServiceException(e.message);
+      }
+      throw const ReviewServiceException('Failed to moderate review. Please try again.');
     }
   }
 }

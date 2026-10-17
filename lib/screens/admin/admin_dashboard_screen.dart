@@ -3,12 +3,19 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../models/app_user.dart';
 import '../../models/attraction.dart';
+import '../../models/review.dart';
 import '../../services/admin_service.dart';
 import '../../services/attraction_service.dart';
+import '../../services/firestore_service.dart';
+import '../../services/review_service.dart';
 import 'attraction_form_dialog.dart';
 
-/// Admin Dashboard Screen for managing tourist attractions and viewing dataset analytics.
+/// Professional Admin Dashboard Screen with tabbed navigation:
+/// 1. Attractions & Dataset Analytics (Overview & CRUD)
+/// 2. Review Moderation (Inspection, Filtering & Removal)
+/// 3. Users & Security (Access Control & RBAC Policy Audit)
 ///
 /// Protected by [AdminService]: ordinary users or signed-out visitors cannot view
 /// dashboard operations and are shown an unauthorized notice.
@@ -21,8 +28,15 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final _searchController = TextEditingController();
+  final _reviewSearchController = TextEditingController();
+
   String _searchQuery = '';
   String? _selectedCategory;
+  String? _selectedCountry;
+
+  String _reviewSearchQuery = '';
+  String _reviewRatingFilter = 'All'; // 'All', 'Low (<=2)', '5 Stars'
+
   bool _isCheckingAuth = true;
   bool _isAuthorized = false;
 
@@ -34,12 +48,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         _searchQuery = _searchController.text.trim();
       });
     });
+    _reviewSearchController.addListener(() {
+      setState(() {
+        _reviewSearchQuery = _reviewSearchController.text.trim();
+      });
+    });
     _verifyAdminAccess();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _reviewSearchController.dispose();
     super.dispose();
   }
 
@@ -131,6 +151,70 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
+  Future<void> _confirmDeleteReview(Review review) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.shield_outlined, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Moderate Review'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to remove this review by "${review.userName}" '
+          'for attraction "${review.attractionId}"?\n\n'
+          'Comment: "${review.comment}"',
+        ),
+        actions: [
+          TextButton(
+            key: const Key('admin_mod_cancel_button'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('admin_mod_confirm_button'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              minimumSize: const Size(0, 40),
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Remove Review'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await ReviewService.instance.moderateDeleteReview(
+          attractionId: review.attractionId,
+          reviewId: review.id,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Review by "${review.userName}" removed successfully.'),
+              backgroundColor: AppTheme.primary,
+            ),
+          );
+          setState(() {});
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to remove review: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isCheckingAuth) {
@@ -202,340 +286,853 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => _navigateBack(),
-        ),
-        actions: [
-          IconButton(
-            key: const Key('admin_refresh_button'),
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Refresh',
-            onPressed: () => setState(() {}),
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: const Text('Admin Dashboard'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => _navigateBack(),
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12.0),
-            child: FilledButton.icon(
-              key: const Key('admin_add_attraction_button'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                minimumSize: const Size(0, 38),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          actions: [
+            IconButton(
+              key: const Key('admin_refresh_button'),
+              icon: const Icon(Icons.refresh_rounded),
+              tooltip: 'Refresh',
+              onPressed: () => setState(() {}),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 12.0),
+              child: FilledButton.icon(
+                key: const Key('admin_add_attraction_button'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  minimumSize: const Size(0, 38),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: _openCreateDialog,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add Attraction'),
               ),
-              onPressed: _openCreateDialog,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add Attraction'),
+            ),
+          ],
+          bottom: const TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            tabs: [
+              Tab(
+                icon: Icon(Icons.dashboard_rounded, size: 20),
+                text: 'Attractions & Overview',
+              ),
+              Tab(
+                icon: Icon(Icons.rate_review_rounded, size: 20),
+                text: 'Review Moderation',
+              ),
+              Tab(
+                icon: Icon(Icons.security_rounded, size: 20),
+                text: 'Users & Security',
+              ),
+            ],
+          ),
+        ),
+        body: StreamBuilder<List<Attraction>>(
+          stream: AttractionService.instance.watchAttractions(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+              return const Center(
+                child: CircularProgressIndicator(key: Key('admin_stream_loading_indicator')),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline_rounded, size: 48, color: Colors.red.shade400),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Failed to load attractions:\n${snapshot.error}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppTheme.textSecondary),
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+                        onPressed: () => setState(() {}),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            final allAttractions = snapshot.data ?? <Attraction>[];
+
+            return TabBarView(
+              children: [
+                _buildOverviewAndAttractionsTab(allAttractions),
+                _buildReviewModerationTab(),
+                _buildUsersAndSecurityTab(),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // TAB 1: OVERVIEW & ATTRACTION MANAGEMENT
+  // ---------------------------------------------------------------------------
+
+  Widget _buildOverviewAndAttractionsTab(List<Attraction> allAttractions) {
+    final totalCount = allAttractions.length;
+    final avgRating = totalCount == 0
+        ? 0.0
+        : allAttractions.map((a) => a.rating).reduce((a, b) => a + b) / totalCount;
+
+    final categoryCounts = <String, int>{};
+    final countryCounts = <String, int>{};
+    for (final a in allAttractions) {
+      final cat = a.category.trim();
+      if (cat.isNotEmpty) {
+        categoryCounts[cat] = (categoryCounts[cat] ?? 0) + 1;
+      }
+      final country = a.country.trim();
+      if (country.isNotEmpty) {
+        countryCounts[country] = (countryCounts[country] ?? 0) + 1;
+      }
+    }
+
+    String topCategory = 'None';
+    int topCategoryCount = 0;
+    categoryCounts.forEach((cat, count) {
+      if (count > topCategoryCount) {
+        topCategory = cat;
+        topCategoryCount = count;
+      }
+    });
+
+    String topCountry = 'None';
+    int topCountryCount = 0;
+    countryCounts.forEach((cntry, count) {
+      if (count > topCountryCount) {
+        topCountry = cntry;
+        topCountryCount = count;
+      }
+    });
+
+    // Filter attractions
+    final filtered = allAttractions.where((a) {
+      final matchesCategory = _selectedCategory == null ||
+          _selectedCategory == 'All' ||
+          a.category.toLowerCase() == _selectedCategory!.toLowerCase();
+      final matchesCountry = _selectedCountry == null ||
+          _selectedCountry == 'All' ||
+          a.country.toLowerCase() == _selectedCountry!.toLowerCase();
+      final q = _searchQuery.toLowerCase();
+      final matchesSearch = q.isEmpty ||
+          a.name.toLowerCase().contains(q) ||
+          a.category.toLowerCase().contains(q) ||
+          a.city.toLowerCase().contains(q) ||
+          a.country.toLowerCase().contains(q) ||
+          a.location.toLowerCase().contains(q);
+      return matchesCategory && matchesCountry && matchesSearch;
+    }).toList();
+
+    return CustomScrollView(
+      slivers: [
+        // Analytics Overview Cards
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Dataset Analytics',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FutureBuilder<AdminDashboardStats>(
+                  initialData: AdminDashboardStats(
+                    totalAttractions: totalCount,
+                    averageRating: double.parse(avgRating.toStringAsFixed(2)),
+                    totalReviews: 0,
+                    topCategory: topCategory,
+                    topCategoryCount: topCategoryCount,
+                    topCountry: topCountry,
+                    topCountryCount: topCountryCount,
+                  ),
+                  future: AdminService.instance.getDashboardStats(allAttractions),
+                  builder: (context, statsSnapshot) {
+                    final stats = statsSnapshot.data ??
+                        AdminDashboardStats(
+                          totalAttractions: totalCount,
+                          averageRating: double.parse(avgRating.toStringAsFixed(2)),
+                          totalReviews: 0,
+                          topCategory: topCategory,
+                          topCategoryCount: topCategoryCount,
+                          topCountry: topCountry,
+                          topCountryCount: topCountryCount,
+                        );
+
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWide = constraints.maxWidth > 650;
+                        return GridView.count(
+                          crossAxisCount: isWide ? 4 : 2,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: isWide ? 1.75 : 1.35,
+                          children: [
+                            _buildMetricCard(
+                              title: 'Total Attractions',
+                              value: stats.totalAttractions.toString(),
+                              subtitle: 'Registered in database',
+                              icon: Icons.landscape_rounded,
+                              color: AppTheme.primary,
+                            ),
+                            _buildMetricCard(
+                              title: 'Average Rating',
+                              value: stats.averageRating.toStringAsFixed(2),
+                              subtitle: 'Out of 5.0 stars',
+                              icon: Icons.star_rounded,
+                              color: Colors.amber.shade700,
+                            ),
+                            _buildMetricCard(
+                              title: 'Total Reviews',
+                              value: stats.totalReviews.toString(),
+                              subtitle: 'Traveler feedback',
+                              icon: Icons.rate_review_rounded,
+                              color: Colors.blue.shade700,
+                            ),
+                            _buildMetricCard(
+                              title: 'Users & Trips',
+                              value: '${stats.totalUsers ?? "—"} / ${stats.totalTrips ?? "—"}',
+                              subtitle: stats.usersRestricted
+                                  ? 'Restricted by rules'
+                                  : 'Active accounts / trips',
+                              icon: Icons.people_alt_rounded,
+                              color: Colors.indigo.shade600,
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-      body: StreamBuilder<List<Attraction>>(
-        stream: AttractionService.instance.watchAttractions(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-            return const Center(
-              child: CircularProgressIndicator(key: Key('admin_stream_loading_indicator')),
-            );
-          }
+        ),
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline_rounded, size: 48, color: Colors.red.shade400),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Failed to load attractions:\n${snapshot.error}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppTheme.textSecondary),
+        // Search & Category/Country Filters
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  key: const Key('admin_search_field'),
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search by name, category, city, country...',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded),
+                            onPressed: () => _searchController.clear(),
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: AppTheme.surface,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
                     ),
-                    const SizedBox(height: 16),
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 40),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Category & Country Filter Chips
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ChoiceChip(
+                          label: const Text('All Categories'),
+                          selected: _selectedCategory == null || _selectedCategory == 'All',
+                          onSelected: (_) {
+                            setState(() => _selectedCategory = 'All');
+                          },
+                        ),
                       ),
-                      onPressed: () => setState(() {}),
-                      child: const Text('Retry'),
+                      ...categoryCounts.keys.map((cat) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: ChoiceChip(
+                            label: Text('$cat (${categoryCounts[cat]})'),
+                            selected: _selectedCategory == cat,
+                            onSelected: (sel) {
+                              setState(() {
+                                _selectedCategory = sel ? cat : 'All';
+                              });
+                            },
+                          ),
+                        );
+                      }),
+                      if (countryCounts.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(width: 1, height: 20, color: Colors.grey.shade300),
+                        const SizedBox(width: 8),
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: ChoiceChip(
+                            label: const Text('All Countries'),
+                            selected: _selectedCountry == null || _selectedCountry == 'All',
+                            onSelected: (_) {
+                              setState(() => _selectedCountry = 'All');
+                            },
+                          ),
+                        ),
+                        ...countryCounts.keys.map((cntry) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: ChoiceChip(
+                              label: Text('$cntry (${countryCounts[cntry]})'),
+                              selected: _selectedCountry == cntry,
+                              onSelected: (sel) {
+                                setState(() {
+                                  _selectedCountry = sel ? cntry : 'All';
+                                });
+                              },
+                            ),
+                          );
+                        }),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Showing ${filtered.length} of $totalCount attractions',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                   ],
                 ),
+              ],
+            ),
+          ),
+        ),
+
+        // Attractions List
+        if (filtered.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.search_off_rounded, size: 56, color: Colors.grey.shade400),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'No attractions found',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Try adjusting your search criteria or clear filters.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppTheme.textSecondary),
+                    ),
+                    const SizedBox(height: 16),
+                    if (_searchQuery.isNotEmpty ||
+                        (_selectedCategory != null && _selectedCategory != 'All') ||
+                        (_selectedCountry != null && _selectedCountry != 'All'))
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _selectedCategory = 'All';
+                            _selectedCountry = 'All';
+                          });
+                        },
+                        child: const Text('Clear Filters'),
+                      ),
+                  ],
+                ),
               ),
-            );
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final attraction = filtered[index];
+                  return _buildAttractionCard(attraction);
+                },
+                childCount: filtered.length,
+              ),
+            ),
+          ),
+
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 40),
+        ),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // TAB 2: REVIEW MODERATION
+  // ---------------------------------------------------------------------------
+
+  Widget _buildReviewModerationTab() {
+    return FutureBuilder<List<Review>>(
+      future: ReviewService.instance.getRecentReviews(limit: 100),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final allReviews = snapshot.data ?? const <Review>[];
+
+        // Filter reviews
+        final filteredReviews = allReviews.where((r) {
+          final q = _reviewSearchQuery.toLowerCase();
+          final matchesSearch = q.isEmpty ||
+              r.comment.toLowerCase().contains(q) ||
+              r.userName.toLowerCase().contains(q) ||
+              r.attractionId.toLowerCase().contains(q);
+
+          if (!matchesSearch) return false;
+
+          if (_reviewRatingFilter == 'Low (<=2)') {
+            return r.rating <= 2.0;
+          } else if (_reviewRatingFilter == '5 Stars') {
+            return r.rating >= 4.9;
           }
+          return true;
+        }).toList();
 
-          final allAttractions = snapshot.data ?? <Attraction>[];
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Search field
+            TextField(
+              key: const Key('admin_review_search_field'),
+              controller: _reviewSearchController,
+              decoration: InputDecoration(
+                hintText: 'Search reviews by comment, user, or attraction ID...',
+                prefixIcon: const Icon(Icons.search_rounded),
+                suffixIcon: _reviewSearchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded),
+                        onPressed: () => _reviewSearchController.clear(),
+                      )
+                    : null,
+                filled: true,
+                fillColor: AppTheme.surface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
 
-          // Compute analytics directly from dataset
-          final totalCount = allAttractions.length;
-          final avgRating = totalCount == 0
-              ? 0.0
-              : allAttractions.map((a) => a.rating).reduce((a, b) => a + b) / totalCount;
+            // Rating filter chips
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  ChoiceChip(
+                    label: Text('All (${allReviews.length})'),
+                    selected: _reviewRatingFilter == 'All',
+                    onSelected: (_) => setState(() => _reviewRatingFilter = 'All'),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: Text(
+                      'Low Ratings (<=2 ★) (${allReviews.where((r) => r.rating <= 2.0).length})',
+                    ),
+                    selected: _reviewRatingFilter == 'Low (<=2)',
+                    selectedColor: Colors.amber.shade100,
+                    onSelected: (_) => setState(() => _reviewRatingFilter = 'Low (<=2)'),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: Text(
+                      '5 Stars (${allReviews.where((r) => r.rating >= 4.9).length})',
+                    ),
+                    selected: _reviewRatingFilter == '5 Stars',
+                    onSelected: (_) => setState(() => _reviewRatingFilter = '5 Stars'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
 
-          final categoryCounts = <String, int>{};
-          final countryCounts = <String, int>{};
-          for (final a in allAttractions) {
-            final cat = a.category.trim();
-            if (cat.isNotEmpty) {
-              categoryCounts[cat] = (categoryCounts[cat] ?? 0) + 1;
-            }
-            final country = a.country.trim();
-            if (country.isNotEmpty) {
-              countryCounts[country] = (countryCounts[country] ?? 0) + 1;
-            }
-          }
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Showing ${filteredReviews.length} reviews for moderation',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
 
-          String topCategory = 'None';
-          int topCategoryCount = 0;
-          categoryCounts.forEach((cat, count) {
-            if (count > topCategoryCount) {
-              topCategory = cat;
-              topCategoryCount = count;
-            }
-          });
-
-          String topCountry = 'None';
-          int topCountryCount = 0;
-          countryCounts.forEach((cntry, count) {
-            if (count > topCountryCount) {
-              topCountry = cntry;
-              topCountryCount = count;
-            }
-          });
-
-          // Filter attractions
-          final filtered = allAttractions.where((a) {
-            final matchesCategory = _selectedCategory == null ||
-                _selectedCategory == 'All' ||
-                a.category.toLowerCase() == _selectedCategory!.toLowerCase();
-            final q = _searchQuery.toLowerCase();
-            final matchesSearch = q.isEmpty ||
-                a.name.toLowerCase().contains(q) ||
-                a.category.toLowerCase().contains(q) ||
-                a.city.toLowerCase().contains(q) ||
-                a.country.toLowerCase().contains(q) ||
-                a.location.toLowerCase().contains(q);
-            return matchesCategory && matchesSearch;
-          }).toList();
-
-          return CustomScrollView(
-            slivers: [
-              // Analytics Overview Cards
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            if (filteredReviews.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 48),
+                child: Center(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Icon(Icons.rate_review_outlined, size: 48, color: Colors.grey.shade400),
+                      const SizedBox(height: 12),
                       const Text(
-                        'Dataset Analytics',
+                        'No reviews found',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.textPrimary,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final isWide = constraints.maxWidth > 650;
-                          return GridView.count(
-                            crossAxisCount: isWide ? 4 : 2,
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            childAspectRatio: isWide ? 1.7 : 1.35,
-                            children: [
-                              _buildMetricCard(
-                                title: 'Total Attractions',
-                                value: totalCount.toString(),
-                                subtitle: 'Registered in database',
-                                icon: Icons.landscape_rounded,
-                                color: AppTheme.primary,
-                              ),
-                              _buildMetricCard(
-                                title: 'Average Rating',
-                                value: avgRating.toStringAsFixed(2),
-                                subtitle: 'Out of 5.0 stars',
-                                icon: Icons.star_rounded,
-                                color: Colors.amber.shade700,
-                              ),
-                              _buildMetricCard(
-                                title: 'Top Category',
-                                value: topCategory,
-                                subtitle: topCategoryCount > 0 ? '$topCategoryCount attractions' : '-',
-                                icon: Icons.category_rounded,
-                                color: const Color(0xFF0F9D58),
-                              ),
-                              _buildMetricCard(
-                                title: 'Top Country',
-                                value: topCountry,
-                                subtitle: topCountryCount > 0 ? '$topCountryCount attractions' : '-',
-                                icon: Icons.public_rounded,
-                                color: const Color(0xFF673AB7),
-                              ),
-                            ],
-                          );
-                        },
+                      const SizedBox(height: 4),
+                      const Text(
+                        'No reviews match the current moderation criteria.',
+                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                       ),
                     ],
                   ),
                 ),
-              ),
+              )
+            else
+              ...filteredReviews.map((r) => _buildReviewModerationCard(r)),
+          ],
+        );
+      },
+    );
+  }
 
-              // Search & Category Filters
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextField(
-                        key: const Key('admin_search_field'),
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Search by name, category, city, country...',
-                          prefixIcon: const Icon(Icons.search_rounded),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear_rounded),
-                                  onPressed: () => _searchController.clear(),
-                                )
-                              : null,
-                          filled: true,
-                          fillColor: AppTheme.surface,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      // Category Filter Chips
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: ChoiceChip(
-                                label: const Text('All Categories'),
-                                selected: _selectedCategory == null || _selectedCategory == 'All',
-                                onSelected: (sel) {
-                                  setState(() => _selectedCategory = 'All');
-                                },
-                              ),
-                            ),
-                            ...categoryCounts.keys.map((cat) {
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 8.0),
-                                child: ChoiceChip(
-                                  label: Text('$cat (${categoryCounts[cat]})'),
-                                  selected: _selectedCategory == cat,
-                                  onSelected: (sel) {
-                                    setState(() {
-                                      _selectedCategory = sel ? cat : 'All';
-                                    });
-                                  },
-                                ),
-                              );
-                            }),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Showing ${filtered.length} of $totalCount attractions',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+  Widget _buildReviewModerationCard(Review review) {
+    final isLowRating = review.rating <= 2.0;
 
-              // Attractions List
-              if (filtered.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.search_off_rounded, size: 56, color: Colors.grey.shade400),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'No attractions found',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Try adjusting your search criteria or clear filters.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: AppTheme.textSecondary),
-                          ),
-                          const SizedBox(height: 16),
-                          if (_searchQuery.isNotEmpty || (_selectedCategory != null && _selectedCategory != 'All'))
-                            OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size(0, 40),
-                              ),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() => _selectedCategory = 'All');
-                              },
-                              child: const Text('Clear Filters'),
-                            ),
-                        ],
-                      ),
-                    ),
+    return Card(
+      key: Key('admin_review_card_${review.id}'),
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isLowRating ? Colors.amber.shade300 : Colors.grey.shade200,
+          width: isLowRating ? 1.5 : 1.0,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                )
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final attraction = filtered[index];
-                        return _buildAttractionCard(attraction);
-                      },
-                      childCount: filtered.length,
+                  child: Text(
+                    review.attractionId,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primary,
                     ),
                   ),
                 ),
-
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 40),
+                const SizedBox(width: 8),
+                if (isLowRating)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Flagged: Low Rating',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.amber.shade900,
+                      ),
+                    ),
+                  ),
+                const Spacer(),
+                Row(
+                  children: [
+                    const Icon(Icons.star_rounded, size: 16, color: Colors.amber),
+                    const SizedBox(width: 2),
+                    Text(
+                      review.rating.toStringAsFixed(1),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              review.userName,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: AppTheme.textPrimary,
               ),
-            ],
-          );
-        },
+            ),
+            const SizedBox(height: 4),
+            Text(
+              review.comment,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF2C3E50),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${review.createdAt.day}/${review.createdAt.month}/${review.createdAt.year}',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+                TextButton.icon(
+                  key: Key('admin_delete_review_button_${review.id}'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red.shade700,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: () => _confirmDeleteReview(review),
+                  icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                  label: const Text('Remove Review', style: TextStyle(fontSize: 12)),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // TAB 3: USERS & SECURITY AUDIT
+  // ---------------------------------------------------------------------------
+
+  Widget _buildUsersAndSecurityTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Security Architecture Info Card
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF176B87).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF176B87).withValues(alpha: 0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.security_rounded, color: Color(0xFF176B87), size: 22),
+                  SizedBox(width: 8),
+                  Text(
+                    'Security & Access Control Architecture',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF176B87),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                '• Fail-Closed Authorization: Administrative privileges are checked via Firebase custom token claims and verified against the Firestore /users/{uid} profile document.\n'
+                '• Immutability & Self-Promotion Prevention: Firestore security rules prevent users from granting themselves administrator roles (request.resource.data.role == resource.data.role).\n'
+                '• Privacy Enforcement: Client apps cannot browse arbitrary user accounts or export passwords/tokens; user role administration requires the Firebase Admin SDK on a trusted backend.',
+                style: TextStyle(fontSize: 13, height: 1.45, color: AppTheme.textPrimary),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        const Text(
+          'Registered User Accounts (Audit Directory)',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Users registered in the local test store or accessible via administrative credentials.',
+          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+        ),
+        const SizedBox(height: 12),
+
+        FutureBuilder<List<AppUser>>(
+          future: FirestoreService.instance.getUsersForAdmin(limit: 50),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            final users = snapshot.data ?? const <AppUser>[];
+
+            if (users.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppTheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.people_outline_rounded, size: 48, color: Colors.grey.shade400),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'No user accounts listed',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Direct client-side iteration of the /users collection is restricted by Firestore security rules. '
+                      'User management operations must be performed using the Firebase Admin SDK in production.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return Column(
+              children: users.map((u) {
+                final isUserAdmin = u.isAdmin;
+                return Card(
+                  key: Key('admin_user_card_${u.uid}'),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(
+                      color: isUserAdmin ? AppTheme.primary.withValues(alpha: 0.5) : Colors.grey.shade200,
+                    ),
+                  ),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: isUserAdmin ? AppTheme.primary : Colors.grey.shade300,
+                      child: Icon(
+                        isUserAdmin ? Icons.admin_panel_settings_rounded : Icons.person_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    title: Text(
+                      (u.name != null && u.name!.isNotEmpty) ? u.name! : 'User (${u.uid})',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    subtitle: Text(
+                      'Email: ${(u.email != null && u.email!.isNotEmpty) ? u.email! : 'None'} • Provider: ${u.provider}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    ),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isUserAdmin
+                            ? AppTheme.primary.withValues(alpha: 0.15)
+                            : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        u.role.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: isUserAdmin ? AppTheme.primary : Colors.grey.shade700,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // SHARED WIDGET HELPERS
+  // ---------------------------------------------------------------------------
 
   Widget _buildMetricCard({
     required String title,

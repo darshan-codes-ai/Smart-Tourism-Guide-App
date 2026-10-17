@@ -78,6 +78,48 @@ void main() {
       expect(updated.rating, 5.0);
       expect(updated.comment, 'Updated: Absolutely breathtaking at sunrise!');
     });
+
+    test('round-trip JSON serialization with toRawMap and fromMap', () {
+      final now = DateTime(2026, 10, 4, 12, 0, 0);
+      final review = Review(
+        id: 'rev-json',
+        attractionId: 'pyramids-giza',
+        userId: 'user-json',
+        userName: 'Zoe',
+        rating: 5.0,
+        comment: 'One of the wonders of the ancient world.',
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      final rawMap = review.toRawMap();
+      expect(rawMap['id'], 'rev-json');
+      expect(rawMap['attractionId'], 'pyramids-giza');
+      expect(rawMap['userId'], 'user-json');
+      expect(rawMap['userName'], 'Zoe');
+      expect(rawMap['rating'], 5.0);
+      expect(rawMap['comment'], 'One of the wonders of the ancient world.');
+
+      final restored = Review.fromMap('rev-json', rawMap, attractionId: 'pyramids-giza');
+      expect(restored.id, 'rev-json');
+      expect(restored.userId, 'user-json');
+      expect(restored.userName, 'Zoe');
+      expect(restored.rating, 5.0);
+      expect(restored.comment, 'One of the wonders of the ancient world.');
+    });
+
+    test('parses legacy or missing userName safely with default Traveler', () {
+      final data = {
+        'userId': 'user-unknown',
+        'rating': 4,
+        'comment': 'Good place.',
+        'createdAt': Timestamp.now(),
+      };
+
+      final review = Review.fromFirestore('rev-legacy', data);
+      expect(review.userName, 'Traveler');
+      expect(review.rating, 4.0);
+    });
   });
 
   group('2. Rating & Comment Validation Tests', () {
@@ -167,6 +209,76 @@ void main() {
       );
 
       expect(review.comment, 'Awesome experience!');
+    });
+
+    test('rejects comment longer than 2000 characters', () async {
+      final longComment = 'a' * 2001;
+      expect(
+        () => ReviewService.instance.createReview(
+          attractionId: 'eiffel-tower',
+          userId: 'user-1',
+          userName: 'Dave',
+          rating: 4.0,
+          comment: longComment,
+        ),
+        throwsA(isA<ReviewServiceException>().having(
+          (e) => e.message,
+          'message',
+          contains('Comment is too long'),
+        )),
+      );
+    });
+
+    test('rejects empty attractionId or empty userId', () async {
+      expect(
+        () => ReviewService.instance.createReview(
+          attractionId: '',
+          userId: 'user-1',
+          userName: 'Dave',
+          rating: 4.0,
+          comment: 'Valid comment',
+        ),
+        throwsA(isA<ReviewServiceException>().having(
+          (e) => e.message,
+          'message',
+          contains('Attraction ID is required'),
+        )),
+      );
+
+      expect(
+        () => ReviewService.instance.createReview(
+          attractionId: 'eiffel-tower',
+          userId: '',
+          userName: 'Dave',
+          rating: 4.0,
+          comment: 'Valid comment',
+        ),
+        throwsA(isA<ReviewServiceException>().having(
+          (e) => e.message,
+          'message',
+          contains('sign in'),
+        )),
+      );
+    });
+
+    test('accepts boundary ratings 1.0 and 5.0', () async {
+      final minReview = await ReviewService.instance.createReview(
+        attractionId: 'attr-min',
+        userId: 'user-min',
+        userName: 'MinUser',
+        rating: 1.0,
+        comment: 'Minimum rating.',
+      );
+      expect(minReview.rating, 1.0);
+
+      final maxReview = await ReviewService.instance.createReview(
+        attractionId: 'attr-max',
+        userId: 'user-max',
+        userName: 'MaxUser',
+        rating: 5.0,
+        comment: 'Maximum rating.',
+      );
+      expect(maxReview.rating, 5.0);
     });
   });
 
@@ -289,6 +401,54 @@ void main() {
         )),
       );
     });
+
+    test('prevents duplicate review from same user for same attraction', () async {
+      await ReviewService.instance.createReview(
+        attractionId: 'eiffel-tower',
+        userId: 'user-dup',
+        userName: 'Dave',
+        rating: 5.0,
+        comment: 'First review.',
+      );
+
+      expect(
+        () => ReviewService.instance.createReview(
+          attractionId: 'eiffel-tower',
+          userId: 'user-dup',
+          userName: 'Dave',
+          rating: 4.0,
+          comment: 'Second accidental review.',
+        ),
+        throwsA(isA<ReviewServiceException>().having(
+          (e) => e.message,
+          'message',
+          contains('already reviewed this attraction'),
+        )),
+      );
+    });
+
+    test('getUserReview retrieves author review and returns null for others', () async {
+      await ReviewService.instance.createReview(
+        attractionId: 'louvre',
+        userId: 'user-author',
+        userName: 'ArtFan',
+        rating: 5.0,
+        comment: 'Mona Lisa is smaller than expected but incredible!',
+      );
+
+      final authorReview = await ReviewService.instance.getUserReview(
+        attractionId: 'louvre',
+        userId: 'user-author',
+      );
+      expect(authorReview, isNotNull);
+      expect(authorReview!.comment, contains('Mona Lisa'));
+
+      final nonAuthorReview = await ReviewService.instance.getUserReview(
+        attractionId: 'louvre',
+        userId: 'user-other',
+      );
+      expect(nonAuthorReview, isNull);
+    });
   });
 
   group('4. Average Rating Calculation Tests', () {
@@ -339,6 +499,28 @@ void main() {
       // (5 + 4 + 4) / 3 = 4.333 -> 4.3
       expect(summary.averageRating, 4.3);
       expect(summary.totalReviews, 3);
+    });
+
+    test('getRatingSummary computes accurate average rating and count asynchronously', () async {
+      await ReviewService.instance.createReview(
+        attractionId: 'sagrada-familia',
+        userId: 'user-a',
+        userName: 'User A',
+        rating: 5.0,
+        comment: 'Masterpiece.',
+      );
+      await ReviewService.instance.createReview(
+        attractionId: 'sagrada-familia',
+        userId: 'user-b',
+        userName: 'User B',
+        rating: 3.0,
+        comment: 'Under construction.',
+      );
+
+      final summary = await ReviewService.instance.getRatingSummary('sagrada-familia');
+      // (5.0 + 3.0) / 2 = 4.0
+      expect(summary.averageRating, 4.0);
+      expect(summary.totalReviews, 2);
     });
   });
 
@@ -434,6 +616,143 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Failed to load reviews'), findsOneWidget);
+    });
+
+    testWidgets('authenticated user can open write review sheet and submit new review', (tester) async {
+      ReviewService.testReviews = <String, List<Review>>{'attr-ui': <Review>[]};
+
+      await tester.pumpWidget(buildTestableWidget(
+        const ReviewsSection(
+          attractionId: 'attr-ui',
+          currentUserId: 'user-ui-1',
+          currentUserName: 'Traveler Dan',
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Write a Review'), findsOneWidget);
+      await tester.tap(find.text('Write a Review'));
+      await tester.pumpAndSettle();
+
+      // Verify write sheet opened
+      expect(find.text('Your Rating'), findsOneWidget);
+      expect(find.text('Your Review'), findsOneWidget);
+
+      // Select 4-star rating
+      await tester.tap(find.byKey(const Key('write_review_star_4')));
+      await tester.pumpAndSettle();
+      expect(find.text('4.0 / 5.0'), findsOneWidget);
+
+      // Enter comment
+      await tester.enterText(
+        find.byKey(const Key('write_review_comment_field')),
+        'Fantastic guided tour and very informative.',
+      );
+      await tester.pumpAndSettle();
+
+      // Submit
+      await tester.tap(find.byKey(const Key('write_review_submit_button')));
+      await tester.pumpAndSettle();
+
+      // Verify review submitted and displayed in UI
+      expect(find.text('Fantastic guided tour and very informative.'), findsOneWidget);
+      expect(find.text('Traveler Dan'), findsOneWidget);
+      expect(find.text('You'), findsOneWidget);
+      expect(find.text('Edit Your Review'), findsOneWidget);
+    });
+
+    testWidgets('owner can open edit review sheet and save updated review', (tester) async {
+      final initialReview = Review(
+        id: 'rev-edit-1',
+        attractionId: 'attr-edit',
+        userId: 'user-owner',
+        userName: 'Traveler Dan',
+        rating: 3.0,
+        comment: 'Initial 3-star comment.',
+        createdAt: DateTime(2026, 10, 5),
+        updatedAt: DateTime(2026, 10, 5),
+      );
+      ReviewService.testReviews = <String, List<Review>>{
+        'attr-edit': <Review>[initialReview],
+      };
+
+      await tester.pumpWidget(buildTestableWidget(
+        const ReviewsSection(
+          attractionId: 'attr-edit',
+          currentUserId: 'user-owner',
+          currentUserName: 'Traveler Dan',
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Initial 3-star comment.'), findsOneWidget);
+      expect(find.byKey(const Key('review_card_edit_button_rev-edit-1')), findsOneWidget);
+
+      // Tap Edit button on the card
+      await tester.tap(find.byKey(const Key('review_card_edit_button_rev-edit-1')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Edit Your Review'), findsWidgets);
+
+      // Update to 5 stars
+      await tester.tap(find.byKey(const Key('write_review_star_5')));
+      await tester.pumpAndSettle();
+
+      // Update comment
+      await tester.enterText(
+        find.byKey(const Key('write_review_comment_field')),
+        'Updated comment: 5-star experience after revisit!',
+      );
+      await tester.pumpAndSettle();
+
+      // Save changes
+      await tester.tap(find.byKey(const Key('write_review_submit_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Updated comment: 5-star experience after revisit!'), findsOneWidget);
+    });
+
+    testWidgets('owner can delete review with confirmation dialog', (tester) async {
+      final reviewToDelete = Review(
+        id: 'rev-del-1',
+        attractionId: 'attr-del',
+        userId: 'user-owner',
+        userName: 'Traveler Dan',
+        rating: 4.0,
+        comment: 'Comment to delete.',
+        createdAt: DateTime(2026, 10, 5),
+        updatedAt: DateTime(2026, 10, 5),
+      );
+      ReviewService.testReviews = <String, List<Review>>{
+        'attr-del': <Review>[reviewToDelete],
+      };
+
+      await tester.pumpWidget(buildTestableWidget(
+        const ReviewsSection(
+          attractionId: 'attr-del',
+          currentUserId: 'user-owner',
+          currentUserName: 'Traveler Dan',
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Comment to delete.'), findsOneWidget);
+
+      // Tap Delete on review card
+      await tester.tap(find.byKey(const Key('review_card_delete_button_rev-del-1')));
+      await tester.pumpAndSettle();
+
+      // Dialog opens
+      expect(find.text('Delete Review'), findsOneWidget);
+      expect(find.byKey(const Key('confirm_delete_review_button')), findsOneWidget);
+
+      // Confirm delete
+      await tester.tap(find.byKey(const Key('confirm_delete_review_button')));
+      await tester.pumpAndSettle();
+
+      // Review is gone and empty state is shown
+      expect(find.text('Comment to delete.'), findsNothing);
+      expect(find.text('No reviews yet.'), findsOneWidget);
     });
   });
 }

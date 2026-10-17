@@ -709,4 +709,20 @@ class TripService {
 
     await updateDayItinerary(tripId: tripId, dayItinerary: currentDays);
   }
+
+  /// Returns total trips count if accessible, or null if restricted by security rules.
+  Future<int?> getTotalTripsCount() async {
+    if (testTrips != null) {
+      return testTrips!.values.fold<int>(0, (acc, list) => acc + list.length);
+    }
+    final firestore = _firestore;
+    if (firestore == null) return null;
+    try {
+      final snapshot = await firestore.collectionGroup('trips').count().get();
+      return snapshot.count;
+    } catch (_) {
+      // Live Firestore security rules restrict reading across all users' trips without Admin SDK
+      return null;
+    }
+  }
 }

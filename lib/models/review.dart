@@ -47,10 +47,24 @@ class Review {
     return {
       'userId': userId,
       'userName': userName,
-      'rating': rating,
+      'rating': rating.round(),
       'comment': comment,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
+    };
+  }
+
+  /// Plain JSON-compatible map for serialization and offline tests.
+  Map<String, dynamic> toRawMap() {
+    return {
+      'id': id,
+      'attractionId': attractionId,
+      'userId': userId,
+      'userName': userName,
+      'rating': rating,
+      'comment': comment,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 
@@ -70,6 +84,14 @@ class Review {
       updatedAt: _parseDateTime(data['updatedAt'] ?? data['createdAt']),
     );
   }
+
+  /// Construct a [Review] from a standard JSON map.
+  factory Review.fromMap(
+    String id,
+    Map<String, dynamic> data, {
+    String attractionId = '',
+  }) =>
+      Review.fromFirestore(id, data, attractionId: attractionId);
 
   static double _parseRating(dynamic value) {
     if (value is num) return value.toDouble().clamp(1.0, 5.0);
