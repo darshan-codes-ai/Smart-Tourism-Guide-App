@@ -197,10 +197,6 @@ class _CardImage extends StatelessWidget {
                   : 600,
               cacheHeight: (height * 2).round(),
               filterQuality: FilterQuality.medium,
-              cacheWidth:
-                  width != null && width! > 0 ? (width! * 2).round() : 600,
-              cacheHeight: (height * 2).round(),
-              filterQuality: FilterQuality.medium,
               errorBuilder: (_, _, _) =>
                   _ImageFallback(category: attraction.category),
               loadingBuilder: (context, child, progress) {
