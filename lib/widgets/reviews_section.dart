@@ -51,8 +51,11 @@ class ReviewsSection extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.error_outline_rounded,
-                        color: Colors.red.shade700, size: 20),
+                    Icon(
+                      Icons.error_outline_rounded,
+                      color: Colors.red.shade700,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Failed to load reviews',
@@ -141,7 +144,8 @@ class ReviewsSection extends StatelessWidget {
                 separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final review = reviews[index];
-                  final isOwner = isAuthenticated && activeUserId == review.userId;
+                  final isOwner =
+                      isAuthenticated && activeUserId == review.userId;
                   return _ReviewCard(
                     review: review,
                     isOwner: isOwner,
@@ -171,7 +175,8 @@ class ReviewsSection extends StatelessWidget {
     Review? existingReview,
   }) {
     final activeUid = currentUserId ?? AuthService.instance.currentUser?.uid;
-    final activeName = currentUserName ??
+    final activeName =
+        currentUserName ??
         AuthService.instance.currentUser?.displayName ??
         AuthService.instance.currentUser?.email?.split('@').first ??
         'Traveler';
@@ -386,10 +391,7 @@ class _EmptyReviewsCard extends StatelessWidget {
           const SizedBox(height: 4),
           const Text(
             'Be the first to review this attraction.',
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFF5B6B73),
-            ),
+            style: TextStyle(fontSize: 13, color: Color(0xFF5B6B73)),
           ),
         ],
       ),
@@ -589,8 +591,11 @@ class _StarRatingBar extends StatelessWidget {
         } else if (rating >= starValue - 0.5) {
           return Icon(Icons.star_half_rounded, size: size, color: color);
         } else {
-          return Icon(Icons.star_outline_rounded,
-              size: size, color: color.withValues(alpha: 0.5));
+          return Icon(
+            Icons.star_outline_rounded,
+            size: size,
+            color: color.withValues(alpha: 0.5),
+          );
         }
       }),
     );
@@ -642,9 +647,7 @@ class _WriteReviewSheetState extends State<_WriteReviewSheet> {
       return;
     }
     if (comment.length > 2000) {
-      setState(
-        () => _errorMessage = 'Comment cannot exceed 2000 characters.',
-      );
+      setState(() => _errorMessage = 'Comment cannot exceed 2000 characters.');
       return;
     }
 
@@ -739,12 +742,15 @@ class _WriteReviewSheetState extends State<_WriteReviewSheet> {
                 final isSelected = _rating >= starIndex;
                 return IconButton(
                   key: Key('write_review_star_$starIndex'),
+                  tooltip: '$starIndex star${starIndex > 1 ? "s" : ""}',
                   onPressed: _isSubmitting
                       ? null
                       : () => setState(() => _rating = starIndex.toDouble()),
                   iconSize: 36,
                   icon: Icon(
-                    isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
+                    isSelected
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
                     color: isSelected
                         ? const Color(0xFFF5A524)
                         : Colors.grey.shade400,
@@ -776,8 +782,7 @@ class _WriteReviewSheetState extends State<_WriteReviewSheet> {
               maxLength: 2000,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
-                hintText:
-                    'What did you like or dislike? Any tips for other visitors?',
+                hintText: 'What did you like or dislike? Any tips for other visitors?',
                 errorText: _errorMessage,
               ),
             ),
@@ -802,4 +807,3 @@ class _WriteReviewSheetState extends State<_WriteReviewSheet> {
     );
   }
 }
-

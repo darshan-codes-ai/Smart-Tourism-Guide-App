@@ -377,7 +377,14 @@ class _WeatherSectionState extends State<WeatherSection> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(condition.icon, size: 44, color: theme.colorScheme.primary),
+              Semantics(
+                label: 'Weather condition: ${condition.description}',
+                child: Icon(
+                  condition.icon,
+                  size: 44,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -528,30 +535,35 @@ class _WeatherSectionState extends State<WeatherSection> {
           const SizedBox(height: 12),
 
           // Attribution
-          InkWell(
-            key: const Key('open_meteo_attribution_link'),
-            onTap: _openAttribution,
-            borderRadius: BorderRadius.circular(6),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Weather data by Open-Meteo',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: theme.colorScheme.primary,
-                      decoration: TextDecoration.underline,
+          Semantics(
+            button: true,
+            label: 'Open Open-Meteo weather website',
+            excludeSemantics: true,
+            child: InkWell(
+              key: const Key('open_meteo_attribution_link'),
+              onTap: _openAttribution,
+              borderRadius: BorderRadius.circular(6),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Weather data by Open-Meteo',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.primary,
+                        decoration: TextDecoration.underline,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.open_in_new_rounded,
-                    size: 11,
-                    color: theme.colorScheme.primary,
-                  ),
-                ],
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.open_in_new_rounded,
+                      size: 11,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

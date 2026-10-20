@@ -369,7 +369,14 @@ class _TripWeatherCardState extends State<TripWeatherCard> {
           // Current Conditions Bar
           Row(
             children: [
-              Icon(condition.icon, size: 36, color: theme.colorScheme.primary),
+              Semantics(
+                label: 'Weather condition: ${condition.description}',
+                child: Icon(
+                  condition.icon,
+                  size: 36,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,30 +541,35 @@ class _TripWeatherCardState extends State<TripWeatherCard> {
           const SizedBox(height: 10),
 
           // Attribution
-          InkWell(
-            key: const Key('trip_weather_open_meteo_attribution'),
-            onTap: _openAttribution,
-            borderRadius: BorderRadius.circular(6),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Weather data by Open-Meteo',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: theme.colorScheme.primary,
-                      decoration: TextDecoration.underline,
+          Semantics(
+            button: true,
+            label: 'Open Open-Meteo weather website',
+            excludeSemantics: true,
+            child: InkWell(
+              key: const Key('trip_weather_open_meteo_attribution'),
+              onTap: _openAttribution,
+              borderRadius: BorderRadius.circular(6),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Weather data by Open-Meteo',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.primary,
+                        decoration: TextDecoration.underline,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.open_in_new_rounded,
-                    size: 11,
-                    color: theme.colorScheme.primary,
-                  ),
-                ],
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.open_in_new_rounded,
+                      size: 11,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -1,11 +1,13 @@
 {
-    "name": "tourmate",
-    "short_name": "tourmate",
+    "name": "TourMate — Smart Tourism Guide App",
+    "short_name": "TourMate",
     "start_url": ".",
+    "id": "/",
+    "scope": "/",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F8FAFC",
+    "theme_color": "#176B87",
+    "description": "AI-powered smart tourism guide app with attractions, trip planning, reviews, and worldwide weather forecasts.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

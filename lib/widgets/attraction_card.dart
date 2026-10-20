@@ -192,6 +192,15 @@ class _CardImage extends StatelessWidget {
             child: Image.network(
               attraction.imageUrl,
               fit: BoxFit.cover,
+              cacheWidth: width != null && width! > 0
+                  ? (width! * 2).round()
+                  : 600,
+              cacheHeight: (height * 2).round(),
+              filterQuality: FilterQuality.medium,
+              cacheWidth:
+                  width != null && width! > 0 ? (width! * 2).round() : 600,
+              cacheHeight: (height * 2).round(),
+              filterQuality: FilterQuality.medium,
               errorBuilder: (_, _, _) =>
                   _ImageFallback(category: attraction.category),
               loadingBuilder: (context, child, progress) {
@@ -222,18 +231,28 @@ class _FavoriteButton extends StatelessWidget {
       listenable: SavedPlacesStore.instance,
       builder: (context, _) {
         final saved = SavedPlacesStore.instance.isSaved(attractionId);
-        return Material(
-          color: Colors.white,
-          shape: const CircleBorder(),
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: () => SavedPlacesStore.instance.toggle(attractionId),
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: Icon(
-                saved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                size: 18,
-                color: saved ? Colors.redAccent : Colors.black54,
+        final label = saved ? 'Remove from favorites' : 'Add to favorites';
+        return Tooltip(
+          message: label,
+          child: Semantics(
+            button: true,
+            label: label,
+            child: Material(
+              color: Colors.white,
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => SavedPlacesStore.instance.toggle(attractionId),
+                child: Padding(
+                  padding: const EdgeInsets.all(7),
+                  child: Icon(
+                    saved
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    size: 19,
+                    color: saved ? Colors.redAccent : Colors.black54,
+                  ),
+                ),
               ),
             ),
           ),

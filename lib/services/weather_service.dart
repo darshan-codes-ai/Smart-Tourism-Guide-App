@@ -56,12 +56,20 @@ class WeatherService {
   final Duration requestTimeout;
 
   static const String _baseUrl = 'https://api.open-meteo.com/v1/forecast';
+  static const int maxCacheEntries = 100;
 
   // In-memory coordinate-based cache
   final Map<String, _CachedWeatherEntry> _cache = {};
 
   // In-flight request deduplication
   final Map<String, Future<WeatherData>> _inFlightRequests = {};
+
+  void _pruneCacheIfFull() {
+    while (_cache.length >= maxCacheEntries) {
+      final oldestKey = _cache.keys.first;
+      _cache.remove(oldestKey);
+    }
+  }
 
   /// Normalizes coordinates to 3 decimal places (~110 meters) for caching.
   static String normalizeCoordinates(double latitude, double longitude) {
@@ -121,6 +129,7 @@ class WeatherService {
 
     try {
       final result = await future;
+      _pruneCacheIfFull();
       _cache[key] = _CachedWeatherEntry(data: result, cachedAt: DateTime.now());
       return result;
     } finally {

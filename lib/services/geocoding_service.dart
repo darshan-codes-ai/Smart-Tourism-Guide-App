@@ -56,12 +56,20 @@ class GeocodingService {
 
   static const String _baseUrl =
       'https://geocoding-api.open-meteo.com/v1/search';
+  static const int maxCacheEntries = 100;
 
   // In-memory query cache
   final Map<String, _CachedGeocodingEntry> _cache = {};
 
   // In-flight request deduplication
   final Map<String, Future<List<DestinationResult>>> _inFlightRequests = {};
+
+  void _pruneCacheIfFull() {
+    while (_cache.length >= maxCacheEntries) {
+      final oldestKey = _cache.keys.first;
+      _cache.remove(oldestKey);
+    }
+  }
 
   /// Searches for destinations matching [query].
   ///
@@ -106,6 +114,7 @@ class GeocodingService {
     try {
       final results = await future;
       if (results.isNotEmpty) {
+        _pruneCacheIfFull();
         _cache[key] = _CachedGeocodingEntry(
           results: results,
           cachedAt: DateTime.now(),
@@ -190,6 +199,13 @@ class GeocodingService {
     final results = await searchDestinations(destinationName, count: 1);
     if (results.isEmpty) return null;
     return results.first;
+  }
+
+  /// Returns whether a non-expired cached result exists for [query].
+  bool hasValidCache(String query, {int count = 5}) {
+    final key = '${query.trim().toLowerCase()}_$count';
+    final entry = _cache[key];
+    return entry != null && !entry.isExpired(cacheTtl);
   }
 
   /// Clears geocoding cache.

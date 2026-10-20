@@ -1,46 +1,133 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="TourMate is an AI-powered smart tourism guide app for discovering attractions, planning trips, exploring worldwide destinations with live weather forecasts, and reading authentic traveler reviews.">
+  <meta name="theme-color" content="#176B87">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="TourMate — Smart Tourism Guide App">
+  <meta property="og:description" content="Discover attractions, explore worldwide destinations with live forecasts, and plan smart itineraries with TourMate.">
+  <meta property="og:image" content="icons/Icon-512.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="TourMate — Smart Tourism Guide App">
+  <meta name="twitter:description" content="Discover attractions, explore worldwide destinations with live forecasts, and plan smart itineraries with TourMate.">
+  <meta name="twitter:image" content="icons/Icon-512.png">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="tourmate">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="TourMate">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>tourmate</title>
+  <!-- Web App Manifest -->
   <link rel="manifest" href="manifest.json">
+
+  <!-- Performance Preconnects -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <title>TourMate — Smart Tourism Guide App</title>
+
+  <script>
+    // Prevent deprecated Intl.v8BreakIterator access from triggering console warnings in Chromium
+    if (typeof Intl !== 'undefined' && typeof Intl.Segmenter !== 'undefined' && 'v8BreakIterator' in Intl) {
+      try { delete Intl.v8BreakIterator; } catch (_) {}
+    }
+  </script>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1A2B33;
+      overflow: hidden;
+    }
+
+    #flutter_loading_app {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #F8FAFC;
+      z-index: 99999;
+      padding: 24px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    .tourmate-logo-badge {
+      width: 80px;
+      height: 80px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #176B87, #05668D);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      box-shadow: 0 10px 25px rgba(23, 107, 135, 0.25);
+      margin-bottom: 20px;
+    }
+
+    .tourmate-title {
+      font-size: 28px;
+      font-weight: 800;
+      color: #176B87;
+      margin: 0 0 8px 0;
+      letter-spacing: -0.5px;
+    }
+
+    .tourmate-tagline {
+      font-size: 15px;
+      color: #5B6B73;
+      margin: 0 0 28px 0;
+      max-width: 320px;
+      line-height: 1.4;
+    }
+
+    .tourmate-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3.5px solid rgba(23, 107, 135, 0.15);
+      border-top-color: #176B87;
+      border-radius: 50%;
+      animation: tourmate-spin 0.9s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
+    }
+
+    @keyframes tourmate-spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+  <!-- Initial Brand & Loading Container for Instant FCP, LCP, and Screen-Reader Usability -->
+  <div id="flutter_loading_app" role="status" aria-live="polite">
+    <div class="tourmate-logo-badge">🌍</div>
+    <h1 class="tourmate-title">TourMate</h1>
+    <p class="tourmate-tagline">Discover. Explore. Experience.</p>
+    <div class="tourmate-spinner" aria-label="Loading TourMate application..."></div>
+  </div>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

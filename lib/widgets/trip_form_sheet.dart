@@ -313,8 +313,9 @@ class _TripFormSheetState extends State<TripFormSheet> {
                 validator: (value) {
                   final text = value?.trim() ?? '';
                   if (text.isEmpty) return 'Please enter a trip name.';
-                  if (text.length > 100)
+                  if (text.length > 100) {
                     return 'Name cannot exceed 100 characters.';
+                  }
                   return null;
                 },
               ),
@@ -352,8 +353,9 @@ class _TripFormSheetState extends State<TripFormSheet> {
                 validator: (value) {
                   final text = value?.trim() ?? '';
                   if (text.isEmpty) return 'Please enter a destination.';
-                  if (text.length > 100)
+                  if (text.length > 100) {
                     return 'Destination cannot exceed 100 characters.';
+                  }
                   return null;
                 },
               ),
@@ -467,6 +469,7 @@ class _TripFormSheetState extends State<TripFormSheet> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.remove, size: 16),
+                            tooltip: 'Decrease travelers',
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                             onPressed: _travelerCount > 1
@@ -496,6 +499,7 @@ class _TripFormSheetState extends State<TripFormSheet> {
                           ),
                           IconButton(
                             icon: const Icon(Icons.add, size: 16),
+                            tooltip: 'Increase travelers',
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                             onPressed: () => setState(() => _travelerCount++),
