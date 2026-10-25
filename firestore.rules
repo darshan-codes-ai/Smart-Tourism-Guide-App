@@ -91,8 +91,9 @@ service cloud.firestore {
           && request.resource.data.comment is string
           && request.resource.data.comment.size() >= 1
           && request.resource.data.comment.size() <= 2000;
-        allow delete: if request.auth != null
-          && resource.data.userId == request.auth.uid;
+        allow delete: if request.auth != null && (
+          resource.data.userId == request.auth.uid || isAdmin()
+        );
       }
     }
   }

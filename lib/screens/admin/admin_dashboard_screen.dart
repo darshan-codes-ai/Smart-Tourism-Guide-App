@@ -10,6 +10,7 @@ import '../../services/admin_service.dart';
 import '../../services/attraction_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/review_service.dart';
+import '../../services/seed_service.dart';
 import 'attraction_form_dialog.dart';
 
 /// Professional Admin Dashboard Screen with tabbed navigation:
@@ -211,6 +212,118 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           );
         }
+      }
+    }
+  }
+
+  Future<void> _handleSeedGlobalAttractions() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.cloud_upload_rounded, color: AppTheme.primary),
+            SizedBox(width: 10),
+            Text('Seed Global Attractions'),
+          ],
+        ),
+        content: const Text(
+          'This administrative operation populates the Firestore database with curated global attractions '
+          'from the local catalog (~829 destinations).\n\n'
+          '• Existing attractions will be detected and preserved (never overwritten).\n'
+          '• Records are validated and written in safe batches (max 250 documents).\n'
+          '• Safe and idempotent: you can run or retry this operation at any time.\n\n'
+          'Do you want to proceed?',
+        ),
+        actions: [
+          TextButton(
+            key: const Key('admin_seed_cancel_button'),
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            key: const Key('admin_seed_confirm_button'),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            icon: const Icon(Icons.cloud_upload_outlined, size: 18),
+            label: const Text('Start Seeding'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    // Show progress dialog
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const PopScope(
+        canPop: false,
+        child: AlertDialog(
+          content: Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Row(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 20),
+                Expanded(
+                  child: Text(
+                    'Seeding attractions into Firestore...\nPlease wait.',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final report = await SeedService.instance.seedGlobalAttractions();
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop(); // close progress
+        showDialog<void>(
+          context: context,
+          builder: (resCtx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.green),
+                SizedBox(width: 10),
+                Text('Seeding Complete'),
+              ],
+            ),
+            content: Text(
+              'Database seeding completed:\n\n'
+              '• Total examined: ${report.totalExamined}\n'
+              '• Newly seeded: ${report.seededCount}\n'
+              '• Skipped (already exist): ${report.skippedCount}\n'
+              '• Validation errors: ${report.errors.length}',
+            ),
+            actions: [
+              FilledButton(
+                key: const Key('admin_seed_result_ok_button'),
+                onPressed: () {
+                  Navigator.of(resCtx).pop();
+                  setState(() {});
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop(); // close progress
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Seeding failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -456,13 +569,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Dataset Analytics',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Dataset Analytics',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      key: const Key('admin_seed_database_button'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 36),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: _handleSeedGlobalAttractions,
+                      icon: const Icon(Icons.cloud_upload_outlined, size: 16),
+                      label: const Text('Seed Database', style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 FutureBuilder<AdminDashboardStats>(
@@ -677,7 +806,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       style: TextStyle(color: AppTheme.textSecondary),
                     ),
                     const SizedBox(height: 16),
-                    if (_searchQuery.isNotEmpty ||
+                    if (totalCount == 0) ...[
+                      const SizedBox(height: 8),
+                      FilledButton.icon(
+                        key: const Key('admin_empty_seed_button'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          minimumSize: const Size(0, 42),
+                        ),
+                        onPressed: _handleSeedGlobalAttractions,
+                        icon: const Icon(Icons.cloud_upload_outlined, size: 18),
+                        label: const Text('Seed Global Attractions Catalog'),
+                      ),
+                    ] else if (_searchQuery.isNotEmpty ||
                         (_selectedCategory != null && _selectedCategory != 'All') ||
                         (_selectedCountry != null && _selectedCountry != 'All'))
                       OutlinedButton(
