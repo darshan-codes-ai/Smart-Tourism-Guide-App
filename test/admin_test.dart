@@ -362,6 +362,13 @@ void main() {
     });
 
     testWidgets('authorized admin sees dashboard metrics and attractions', (tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       AdminService.testIsAdminOverride = true;
       AttractionService.testAttractions = {
         sampleAttraction1.id: sampleAttraction1,
@@ -389,6 +396,13 @@ void main() {
     });
 
     testWidgets('search filters attraction list in real time', (tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       AdminService.testIsAdminOverride = true;
       AttractionService.testAttractions = {
         sampleAttraction1.id: sampleAttraction1,
@@ -608,6 +622,13 @@ void main() {
     });
 
     testWidgets('country filter chips filter attractions by country and can be cleared', (tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       AdminService.testIsAdminOverride = true;
       AttractionService.testAttractions = {
         sampleAttraction1.id: sampleAttraction1, // France

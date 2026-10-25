@@ -94,7 +94,7 @@ class SeedService {
         item = Map<String, dynamic>.from(item as Map);
       }
       final id = (item['id'] ?? '').toString().trim();
-      return Attraction.fromFirestore(id, item as Map<String, dynamic>);
+      return Attraction.fromFirestore(id, item);
     }).toList();
   }
 

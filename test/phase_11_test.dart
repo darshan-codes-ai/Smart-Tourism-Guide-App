@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tourmate/core/theme/app_theme.dart';
-import 'package:tourmate/data/dummy_data.dart';
 import 'package:tourmate/models/attraction.dart';
 import 'package:tourmate/models/review.dart';
 import 'package:tourmate/screens/admin/admin_dashboard_screen.dart';
