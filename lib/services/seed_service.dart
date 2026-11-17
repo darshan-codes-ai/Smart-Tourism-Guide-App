@@ -16,21 +16,37 @@ class SeedReport {
     required this.totalExamined,
     required this.seededCount,
     required this.skippedCount,
+    this.validCount = 0,
+    this.invalidCount = 0,
+    this.existingCount = 0,
+    this.newCount = 0,
+    this.duplicateCount = 0,
+    this.durationMs = 0,
+    this.isDryRun = false,
     this.errors = const <String>[],
   });
 
   final int totalExamined;
   final int seededCount;
   final int skippedCount;
+  final int validCount;
+  final int invalidCount;
+  final int existingCount;
+  final int newCount;
+  final int duplicateCount;
+  final int durationMs;
+  final bool isDryRun;
   final List<String> errors;
 
   bool get hasErrors => errors.isNotEmpty;
   bool get isSuccess =>
-      seededCount > 0 || (totalExamined > 0 && skippedCount == totalExamined);
+      seededCount > 0 ||
+      (totalExamined > 0 && skippedCount == totalExamined) ||
+      isDryRun;
 
   @override
   String toString() =>
-      'SeedReport(examined: $totalExamined, seeded: $seededCount, skipped: $skippedCount, errors: ${errors.length})';
+      'SeedReport(examined: $totalExamined, seeded: $seededCount, skipped: $skippedCount, existing: $existingCount, duplicates: $duplicateCount, duration: ${durationMs}ms, dryRun: $isDryRun, errors: ${errors.length})';
 }
 
 /// Service to safely seed global attraction data into Firestore.
@@ -111,9 +127,12 @@ class SeedService {
   Future<SeedReport> seedGlobalAttractions({
     List<Attraction>? customAttractions,
     bool overwrite = false,
+    bool dryRun = false,
     int batchSize = 250,
     void Function(int processed, int total)? onProgress,
   }) async {
+    final stopwatch = Stopwatch()..start();
+
     // 1. Enforce verified administrator authorization
     await AdminService.instance.assertAdmin();
 
@@ -149,6 +168,10 @@ class SeedService {
       final existingIds = testExistingIds ?? <String>{};
       int seeded = 0;
       int skipped = 0;
+      int duplicates = 0;
+      int existingCount = 0;
+      int validCount = 0;
+      int invalidCount = 0;
       final errors = <String>[];
       final seenIds = <String>{};
 
@@ -158,31 +181,52 @@ class SeedService {
 
         if (id.isEmpty || seenIds.contains(id)) {
           skipped++;
+          duplicates++;
           continue;
         }
         seenIds.add(id);
 
+        // Core protection for live Charminar document
+        if (id.toLowerCase() == 'charminar' && existingIds.contains(id)) {
+          skipped++;
+          existingCount++;
+          continue;
+        }
+
         if (!overwrite && existingIds.contains(id)) {
           skipped++;
+          existingCount++;
           continue;
         }
 
         try {
           AttractionService.instance.validateAttraction(attraction);
-          testWrittenAttractions!.add(attraction);
-          existingIds.add(id);
+          validCount++;
+          if (!dryRun) {
+            testWrittenAttractions!.add(attraction);
+            existingIds.add(id);
+          }
           seeded++;
         } catch (e) {
+          invalidCount++;
           errors.add('Failed to validate "${attraction.name}" ($id): $e');
           skipped++;
         }
         onProgress?.call(i + 1, candidates.length);
       }
 
+      stopwatch.stop();
       return SeedReport(
         totalExamined: candidates.length,
-        seededCount: seeded,
+        seededCount: dryRun ? 0 : seeded,
         skippedCount: skipped,
+        validCount: validCount,
+        invalidCount: invalidCount,
+        existingCount: existingCount,
+        newCount: validCount,
+        duplicateCount: duplicates,
+        durationMs: stopwatch.elapsedMilliseconds,
+        isDryRun: dryRun,
         errors: errors,
       );
     }
@@ -211,6 +255,10 @@ class SeedService {
 
     int seeded = 0;
     int skipped = 0;
+    int duplicates = 0;
+    int existingCount = 0;
+    int validCount = 0;
+    int invalidCount = 0;
     final errors = <String>[];
     final validToSeed = <Attraction>[];
     final seenIds = <String>{};
@@ -219,52 +267,73 @@ class SeedService {
       final id = attraction.id.trim();
       if (id.isEmpty || seenIds.contains(id)) {
         skipped++;
+        duplicates++;
         continue;
       }
       seenIds.add(id);
 
+      // Core protection for live Charminar document
+      if (id.toLowerCase() == 'charminar' && existingIds.contains(id)) {
+        skipped++;
+        existingCount++;
+        continue;
+      }
+
       if (!overwrite && existingIds.contains(id)) {
         skipped++;
+        existingCount++;
         continue;
       }
 
       try {
         AttractionService.instance.validateAttraction(attraction);
+        validCount++;
         validToSeed.add(attraction);
       } catch (e) {
+        invalidCount++;
         errors.add('Validation failed for "${attraction.name}" ($id): $e');
         skipped++;
       }
     }
 
     // 5. Batch writes in chunks complying with Firestore limits (<= 500)
-    final effectiveBatchSize = batchSize.clamp(1, 450);
-    for (int i = 0; i < validToSeed.length; i += effectiveBatchSize) {
-      final end = (i + effectiveBatchSize < validToSeed.length)
-          ? i + effectiveBatchSize
-          : validToSeed.length;
-      final chunk = validToSeed.sublist(i, end);
+    if (!dryRun) {
+      final effectiveBatchSize = batchSize.clamp(1, 450);
+      for (int i = 0; i < validToSeed.length; i += effectiveBatchSize) {
+        final end = (i + effectiveBatchSize < validToSeed.length)
+            ? i + effectiveBatchSize
+            : validToSeed.length;
+        final chunk = validToSeed.sublist(i, end);
 
-      final batch = firestore.batch();
-      for (final a in chunk) {
-        final docRef = collection.doc(a.id);
-        batch.set(docRef, a.toFirestore(), SetOptions(merge: !overwrite));
+        final batch = firestore.batch();
+        for (final a in chunk) {
+          final docRef = collection.doc(a.id);
+          batch.set(docRef, a.toFirestore(), SetOptions(merge: !overwrite));
+        }
+
+        try {
+          await batch.commit();
+          seeded += chunk.length;
+        } catch (e) {
+          errors.add('Batch commit failed for chunk ($i to $end): $e');
+        }
+
+        onProgress?.call(seeded + skipped, candidates.length);
       }
-
-      try {
-        await batch.commit();
-        seeded += chunk.length;
-      } catch (e) {
-        errors.add('Batch commit failed for chunk ($i to $end): $e');
-      }
-
-      onProgress?.call(seeded + skipped, candidates.length);
     }
 
+    stopwatch.stop();
     return SeedReport(
       totalExamined: candidates.length,
-      seededCount: seeded,
+      seededCount: dryRun ? 0 : seeded,
       skippedCount: skipped,
+      validCount: validCount,
+      invalidCount: invalidCount,
+      existingCount: existingCount,
+      newCount: validToSeed.length,
+      duplicateCount: duplicates,
+      durationMs: stopwatch.elapsedMilliseconds,
+      isDryRun: dryRun,
       errors: errors,
     );
   }

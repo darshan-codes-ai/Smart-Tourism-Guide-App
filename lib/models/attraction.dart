@@ -76,6 +76,12 @@ class Attraction {
     return location;
   }
 
+  /// Factory constructor to parse directly from a JSON map.
+  factory Attraction.fromJson(Map<String, dynamic> json) {
+    final id = (json['id'] ?? '').toString();
+    return Attraction.fromFirestore(id, json);
+  }
+
   factory Attraction.fromFirestore(String id, Map<String, dynamic> data) {
     double? lat = _parseDouble(data['latitude'] ?? data['lat']);
     double? lng = _parseDouble(data['longitude'] ?? data['lng']);
@@ -97,8 +103,24 @@ class Attraction {
       location = locationValue?.toString() ?? '';
     }
 
-    final String country = data['country']?.toString() ?? '';
-    final String city = data['city']?.toString() ?? '';
+    String country = data['country']?.toString() ?? '';
+    String city = data['city']?.toString() ?? '';
+    if (city.isEmpty && location.isNotEmpty && location.contains(',')) {
+      final parts = location.split(',');
+      if (parts.length >= 2) {
+        city = parts[0].trim();
+        if (country.isEmpty) {
+          country = parts.sublist(1).join(',').trim();
+        }
+      }
+    }
+
+    final String resolvedLocation = location.isNotEmpty
+        ? location
+        : (city.isNotEmpty && country.isNotEmpty)
+        ? '$city, $country'
+        : (city.isNotEmpty ? city : country);
+
     final String? countryCode = data['countryCode']?.toString();
     final String? currency = data['currency']?.toString();
 
@@ -123,9 +145,14 @@ class Attraction {
       openingTime: openingTime,
       closingTime: closingTime,
       distance: _parseDistance(data['distance']),
-      location: location,
-      openingHours: _parseOpeningHours(data['openingHours'] ?? data['openinghours']),
-      entryFee: _parseEntryFee(data['entryFee'] ?? data['entryfee'], currency: currency),
+      location: resolvedLocation,
+      openingHours: _parseOpeningHours(
+        data['openingHours'] ?? data['openinghours'],
+      ),
+      entryFee: _parseEntryFee(
+        data['entryFee'] ?? data['entryfee'],
+        currency: currency,
+      ),
       latitude: lat,
       longitude: lng,
       isSaved: _parseBool(data['isSaved']),
@@ -208,6 +235,9 @@ class Attraction {
       'isSaved': isSaved,
     };
   }
+
+  /// Serializes attraction to a standard JSON map including its [id].
+  Map<String, dynamic> toJson() => toFirestore()..['id'] = id;
 
   Attraction copyWith({
     String? id,

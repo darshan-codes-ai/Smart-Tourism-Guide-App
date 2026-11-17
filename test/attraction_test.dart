@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tourmate/data/dummy_data.dart';
 import 'package:tourmate/models/attraction.dart';
 import 'package:tourmate/services/attraction_service.dart';
+import 'package:tourmate/services/seed_service.dart';
 
 void main() {
   group('Attraction model tests', () {
@@ -150,6 +151,125 @@ void main() {
       expect(updated.name, attraction.name);
       expect(updated.isSaved, true);
     });
+
+    test('fromJson parses global dataset JSON format properly', () {
+      final json = <String, dynamic>{
+        'id': 'eiffel-tower',
+        'name': 'Eiffel Tower',
+        'category': 'Historical',
+        'city': 'Paris',
+        'country': 'France',
+        'latitude': 48.8584,
+        'longitude': 2.2945,
+        'description':
+            'Iconic wrought-iron lattice tower on the Champ de Mars.',
+        'imageUrl': 'https://example.com/eiffel.jpg',
+        'openingHours': '09:00 - 00:00',
+        'entryFee': '€29',
+        'rating': 4.7,
+      };
+
+      final attraction = Attraction.fromJson(json);
+
+      expect(attraction.id, 'eiffel-tower');
+      expect(attraction.name, 'Eiffel Tower');
+      expect(attraction.category, 'Historical');
+      expect(attraction.city, 'Paris');
+      expect(attraction.country, 'France');
+      expect(attraction.location, 'Paris, France');
+      expect(attraction.latitude, 48.8584);
+      expect(attraction.longitude, 2.2945);
+      expect(attraction.rating, 4.7);
+      expect(attraction.imageUrl, 'https://example.com/eiffel.jpg');
+      expect(attraction.isSaved, false);
+    });
+
+    test('toJson produces map compatible with fromJson', () {
+      const attraction = Attraction(
+        id: 'colosseum-rome',
+        name: 'Colosseum',
+        category: 'Historical',
+        city: 'Rome',
+        country: 'Italy',
+        location: 'Rome, Italy',
+        latitude: 41.8902,
+        longitude: 12.4922,
+        description: 'An oval amphitheatre in the centre of Rome.',
+        imageUrl: 'https://example.com/colosseum.jpg',
+        openingHours: '08:30 - 19:00',
+        entryFee: '€18',
+        distance: '2.5 km',
+        rating: 4.8,
+      );
+
+      final json = attraction.toJson();
+
+      expect(json['id'], 'colosseum-rome');
+      expect(json['name'], 'Colosseum');
+      expect(json['city'], 'Rome');
+      expect(json['country'], 'Italy');
+      expect(json['latitude'], 41.8902);
+      expect(json['longitude'], 12.4922);
+
+      final restored = Attraction.fromJson(json);
+      expect(restored.id, attraction.id);
+      expect(restored.name, attraction.name);
+      expect(restored.city, attraction.city);
+      expect(restored.country, attraction.country);
+      expect(restored.location, attraction.location);
+    });
+
+    test(
+      'fromFirestore falls back to extracting city and country from location',
+      () {
+        final data = <String, dynamic>{
+          'name': 'Tokyo Tower',
+          'location': 'Tokyo, Japan',
+          'category': 'Historical',
+          'latitude': 35.6586,
+          'longitude': 139.7454,
+        };
+
+        final attraction = Attraction.fromFirestore('tokyo_doc', data);
+
+        expect(attraction.city, 'Tokyo');
+        expect(attraction.country, 'Japan');
+        expect(attraction.location, 'Tokyo, Japan');
+      },
+    );
+
+    test(
+      'SeedReport tracks comprehensive execution metrics and dry-run flag',
+      () {
+        final report = SeedReport(
+          totalExamined: 829,
+          seededCount: 0,
+          skippedCount: 829,
+          validCount: 829,
+          invalidCount: 0,
+          existingCount: 829,
+          newCount: 0,
+          duplicateCount: 0,
+          durationMs: 1420,
+          isDryRun: true,
+          errors: [],
+        );
+
+        expect(report.totalExamined, 829);
+        expect(report.seededCount, 0);
+        expect(report.skippedCount, 829);
+        expect(report.validCount, 829);
+        expect(report.invalidCount, 0);
+        expect(report.existingCount, 829);
+        expect(report.newCount, 0);
+        expect(report.duplicateCount, 0);
+        expect(report.durationMs, 1420);
+        expect(report.isDryRun, true);
+        expect(report.errors, isEmpty);
+        expect(report.toString(), contains('SeedReport(examined: 829'));
+        expect(report.toString(), contains('dryRun: true'));
+      },
+    );
   });
 
   group('AttractionService tests', () {
@@ -162,7 +282,9 @@ void main() {
         expect(attractions.isNotEmpty, true);
         expect(attractions.length, DummyData.attractions.length);
 
-        final single = await AttractionService.instance.getAttraction('charminar');
+        final single = await AttractionService.instance.getAttraction(
+          'charminar',
+        );
         expect(single, isNotNull);
         expect(single!.name, 'Charminar');
 

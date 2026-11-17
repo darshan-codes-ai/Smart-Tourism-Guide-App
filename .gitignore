@@ -3,6 +3,10 @@
 *.log
 *failure*.txt
 *-debug.txt
+*.backup
+*.backup*
+*.bak
+scratch/
 *.pyc
 *.swp
 .DS_Store
