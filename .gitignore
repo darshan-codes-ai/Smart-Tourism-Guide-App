@@ -7,6 +7,7 @@
 *.backup*
 *.bak
 scratch/
+.firebase/
 *.pyc
 *.swp
 .DS_Store

@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthServiceException implements Exception {
@@ -16,12 +17,30 @@ class AuthService {
 
   static final AuthService instance = AuthService._();
 
+  @visibleForTesting
+  static FirebaseAuth? testAuthOverride;
+
+  @visibleForTesting
+  static Future<UserCredential> Function()? testSignInWithGoogleOverride;
+
+  @visibleForTesting
+  static void resetForTest() {
+    testAuthOverride = null;
+    testSignInWithGoogleOverride = null;
+  }
+
   FirebaseAuth? get _auth {
+    if (testAuthOverride != null) return testAuthOverride;
     if (Firebase.apps.isEmpty) return null;
     return FirebaseAuth.instance;
   }
 
   GoogleSignIn get _googleSignIn => GoogleSignIn.instance;
+  Future<void>? _googleSignInInitFuture;
+
+  Future<void> _ensureGoogleSignInInitialized() {
+    return _googleSignInInitFuture ??= _googleSignIn.initialize();
+  }
 
   User? get currentUser => _auth?.currentUser;
 
@@ -76,23 +95,71 @@ class AuthService {
   }
 
   Future<UserCredential> signInWithGoogle() async {
+    if (testSignInWithGoogleOverride != null) {
+      return await testSignInWithGoogleOverride!();
+    }
+
     final auth = _auth;
     if (auth == null) {
       throw const AuthServiceException('Firebase is not initialized.');
     }
+
+    if (kIsWeb) {
+      try {
+        final googleProvider = GoogleAuthProvider();
+        googleProvider.setCustomParameters({'prompt': 'select_account'});
+        return await auth.signInWithPopup(googleProvider);
+      } on FirebaseAuthException catch (error) {
+        throw AuthServiceException(_messageForAuthError(error));
+      } catch (error) {
+        if (error is AuthServiceException) rethrow;
+        final message = error.toString().toLowerCase();
+        if (message.contains('cancel') ||
+            message.contains('abort') ||
+            message.contains('popup-closed-by-user')) {
+          throw const AuthServiceException('Google Sign-In was cancelled.');
+        }
+        if (message.contains('popup-blocked')) {
+          throw const AuthServiceException(
+            'Sign-in popup was blocked by your browser. Please allow popups for this site.',
+          );
+        }
+        if (message.contains('unauthorized-domain')) {
+          throw const AuthServiceException(
+            'This domain is not authorized for Google Sign-In. Please check your Firebase authorized domains.',
+          );
+        }
+        throw const AuthServiceException(
+          'Google Sign-In failed. Please try again.',
+        );
+      }
+    }
+
     try {
-      await _googleSignIn.initialize();
+      await _ensureGoogleSignInInitialized();
+      if (!_googleSignIn.supportsAuthenticate()) {
+        throw const AuthServiceException(
+          'Google Sign-In is not supported on this platform.',
+        );
+      }
       final googleUser = await _googleSignIn.authenticate();
       final googleAuth = googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw const AuthServiceException(
+          'Failed to retrieve Google authentication token. Please try again.',
+        );
+      }
       final credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken,
+        idToken: idToken,
       );
       return await auth.signInWithCredential(credential);
     } on FirebaseAuthException catch (error) {
       throw AuthServiceException(_messageForAuthError(error));
     } catch (error) {
+      if (error is AuthServiceException) rethrow;
       final message = error.toString().toLowerCase();
-      if (message.contains('cancel')) {
+      if (message.contains('cancel') || message.contains('abort')) {
         throw const AuthServiceException('Google Sign-In was cancelled.');
       }
       throw const AuthServiceException(
@@ -176,10 +243,12 @@ class AuthService {
     if (auth == null) return;
     try {
       await auth.signOut();
-      try {
-        await _googleSignIn.signOut();
-      } catch (_) {
-        // Firebase sign-out is authoritative; Google account sign-out is best effort.
+      if (!kIsWeb) {
+        try {
+          await _googleSignIn.signOut();
+        } catch (_) {
+          // Firebase sign-out is authoritative; Google account sign-out is best effort.
+        }
       }
     } on FirebaseAuthException catch (error) {
       throw AuthServiceException(_messageForAuthError(error));
@@ -190,8 +259,21 @@ class AuthService {
     }
   }
 
-  String _messageForAuthError(FirebaseAuthException error) {
-    switch (error.code) {
+  static String messageForAuthErrorCode(String code) {
+    switch (code) {
+      case 'popup-closed-by-user':
+        return 'Sign-in was cancelled.';
+      case 'popup-blocked':
+        return 'Sign-in popup was blocked by your browser. Please allow popups for this site.';
+      case 'unauthorized-domain':
+        return 'This domain is not authorized for Google Sign-In. Please check your Firebase authorized domains.';
+      case 'account-exists-with-different-credential':
+        return 'An account already exists with this email address using a different sign-in method.';
+      case 'cancelled-popup-request':
+        return 'Only one popup request is allowed at a time.';
+      case 'invalid-oauth-client-id':
+      case 'invalid-api-key':
+        return 'Google Sign-In configuration error. Please contact support.';
       case 'email-already-in-use':
         return 'An account with this email already exists.';
       case 'invalid-email':
@@ -221,5 +303,9 @@ class AuthService {
       default:
         return 'Something went wrong. Please try again.';
     }
+  }
+
+  String _messageForAuthError(FirebaseAuthException error) {
+    return messageForAuthErrorCode(error.code);
   }
 }

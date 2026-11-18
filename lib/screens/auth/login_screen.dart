@@ -30,34 +30,66 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _isLoading = true);
+    UserCredential credential;
     try {
-      final credential = await AuthService.instance.signInWithEmail(
+      credential = await AuthService.instance.signInWithEmail(
         email: _emailController.text,
         password: _passwordController.text,
       );
-      await _ensureProfile(credential.user);
-      if (mounted) context.go(AppRouter.home);
     } on AuthServiceException catch (error) {
-      _showMessage(error.message);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showMessage(error.message);
+      }
+      return;
     } catch (_) {
-      _showMessage('Something went wrong. Please try again.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showMessage('Something went wrong. Please try again.');
+      }
+      return;
+    }
+
+    try {
+      await _ensureProfile(credential.user);
+    } catch (error) {
+      debugPrint('Profile sync error: $error');
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      context.go(AppRouter.home);
     }
   }
 
   Future<void> _loginWithGoogle() async {
     setState(() => _isLoading = true);
+    UserCredential credential;
     try {
-      final credential = await AuthService.instance.signInWithGoogle();
-      await _ensureProfile(credential.user);
-      if (mounted) context.go(AppRouter.home);
+      credential = await AuthService.instance.signInWithGoogle();
     } on AuthServiceException catch (error) {
-      _showMessage(error.message);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showMessage(error.message);
+      }
+      return;
     } catch (_) {
-      _showMessage('Google Sign-In failed. Please try again.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showMessage('Google Sign-In failed. Please try again.');
+      }
+      return;
+    }
+
+    try {
+      await _ensureProfile(credential.user);
+    } catch (error) {
+      debugPrint('Profile sync error: $error');
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      context.go(AppRouter.home);
     }
   }
 
