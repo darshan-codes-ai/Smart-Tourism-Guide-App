@@ -91,7 +91,10 @@ class AdminService {
       // 1. Check custom claim on ID token if present
       try {
         final idTokenResult = await currentUser.getIdTokenResult(forceRefresh);
-        final tokenRole = idTokenResult.claims?['role']?.toString().toLowerCase().trim();
+        final tokenRole = idTokenResult.claims?['role']
+            ?.toString()
+            .toLowerCase()
+            .trim();
         if (tokenRole == 'admin') {
           return true;
         }
@@ -100,14 +103,18 @@ class AdminService {
       }
 
       // 2. Check Firestore profile document
-      final profile = await FirestoreService.instance.getUserProfile(currentUser.uid);
+      final profile = await FirestoreService.instance.getUserProfile(
+        currentUser.uid,
+      );
       if (profile == null) {
         return false;
       }
 
       return profile.isAdmin;
     } catch (error) {
-      debugPrint('AdminService: Authorization check failed safely (fail-closed): $error');
+      debugPrint(
+        'AdminService: Authorization check failed safely (fail-closed): $error',
+      );
       return false;
     }
   }
@@ -153,11 +160,14 @@ class AdminService {
   }
 
   /// Calculates and aggregates reliable dashboard statistics from database sources.
-  Future<AdminDashboardStats> getDashboardStats(List<Attraction> attractions) async {
+  Future<AdminDashboardStats> getDashboardStats(
+    List<Attraction> attractions,
+  ) async {
     final totalAttractions = attractions.length;
     final averageRating = totalAttractions == 0
         ? 0.0
-        : attractions.map((a) => a.rating).reduce((a, b) => a + b) / totalAttractions;
+        : attractions.map((a) => a.rating).reduce((a, b) => a + b) /
+              totalAttractions;
 
     final categoryCounts = <String, int>{};
     final countryCounts = <String, int>{};
@@ -192,7 +202,9 @@ class AdminService {
 
     // Total reviews & recent reviews
     final totalReviews = await ReviewService.instance.getTotalReviewsCount();
-    final recentReviews = await ReviewService.instance.getRecentReviews(limit: 5);
+    final recentReviews = await ReviewService.instance.getRecentReviews(
+      limit: 5,
+    );
 
     // Total users (respecting security boundaries)
     final usersCount = await FirestoreService.instance.getTotalUsersCount();
@@ -219,4 +231,3 @@ class AdminService {
     );
   }
 }
-

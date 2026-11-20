@@ -28,7 +28,10 @@ void main() {
         'longitude': 78.4747,
       };
 
-      final attraction = Attraction.fromFirestore('Charminar', legacyCharminarData);
+      final attraction = Attraction.fromFirestore(
+        'Charminar',
+        legacyCharminarData,
+      );
 
       expect(attraction.id, 'Charminar');
       expect(attraction.name, 'Charminar');
@@ -51,9 +54,7 @@ void main() {
     });
 
     test('handles fallback when neither entryFee nor entryfee exists', () {
-      final data = {
-        'name': 'Central Park',
-      };
+      final data = {'name': 'Central Park'};
 
       final attraction = Attraction.fromFirestore('central-park', data);
       expect(attraction.entryFee, 'Not available');
@@ -67,38 +68,54 @@ void main() {
     });
 
     test('Charminar ID is preserved and not overwritten with lowercase', () {
-      expect(ExistingAttractions.liveFirestoreIds.contains('Charminar'), isTrue);
+      expect(
+        ExistingAttractions.liveFirestoreIds.contains('Charminar'),
+        isTrue,
+      );
       expect(ExistingAttractions.legacyIdAliases['charminar'], 'Charminar');
     });
 
-    test('AttractionService safely resolves both "charminar" and "Charminar"', () async {
-      AttractionService.devFallbackEnabled = true;
+    test(
+      'AttractionService safely resolves both "charminar" and "Charminar"',
+      () async {
+        AttractionService.devFallbackEnabled = true;
 
-      // Requesting lowercase 'charminar' resolves without throwing
-      final resolved = await AttractionService.instance.getAttraction('charminar');
-      expect(resolved, isNotNull);
-      expect(resolved!.name, 'Charminar');
+        // Requesting lowercase 'charminar' resolves without throwing
+        final resolved = await AttractionService.instance.getAttraction(
+          'charminar',
+        );
+        expect(resolved, isNotNull);
+        expect(resolved!.name, 'Charminar');
 
-      // Requesting PascalCase 'Charminar' also resolves
-      final resolvedPascal = await AttractionService.instance.getAttraction('Charminar');
-      expect(resolvedPascal, isNotNull);
-      expect(resolvedPascal!.name, 'Charminar');
-    });
+        // Requesting PascalCase 'Charminar' also resolves
+        final resolvedPascal = await AttractionService.instance.getAttraction(
+          'Charminar',
+        );
+        expect(resolvedPascal, isNotNull);
+        expect(resolvedPascal!.name, 'Charminar');
+      },
+    );
   });
 
   group('Phase 2.5 — Normalization Pipeline Validation', () {
     test('validates coordinates strictly within WGS84 bounds', () {
-      final valid = GlobalAttractionPipeline.parseWktPoint('Point(2.2945 48.8584)');
+      final valid = GlobalAttractionPipeline.parseWktPoint(
+        'Point(2.2945 48.8584)',
+      );
       expect(valid, isNotNull);
       expect(valid!.$1, 48.8584); // latitude
       expect(valid.$2, 2.2945); // longitude
 
       // Out of bounds latitude (> 90)
-      final invalidLat = GlobalAttractionPipeline.parseWktPoint('Point(0.0 95.0)');
+      final invalidLat = GlobalAttractionPipeline.parseWktPoint(
+        'Point(0.0 95.0)',
+      );
       expect(invalidLat, isNull);
 
       // Out of bounds longitude (> 180)
-      final invalidLng = GlobalAttractionPipeline.parseWktPoint('Point(185.0 0.0)');
+      final invalidLng = GlobalAttractionPipeline.parseWktPoint(
+        'Point(185.0 0.0)',
+      );
       expect(invalidLng, isNull);
 
       // Malformed point
@@ -116,21 +133,57 @@ void main() {
       expect(validRegex.hasMatch(''), isFalse);
     });
 
-    test('maps Wikidata types into TourMate canonical categories correctly', () {
-      expect(GlobalAttractionPipeline.mapWikidataCategory('Q570116'), 'Historical');
-      expect(GlobalAttractionPipeline.mapWikidataCategory('Q33506'), 'Historical');
-      expect(GlobalAttractionPipeline.mapWikidataCategory('Q4989906'), 'Historical');
-      expect(GlobalAttractionPipeline.mapWikidataCategory('Q46169'), 'Nature');
-      expect(GlobalAttractionPipeline.mapWikidataCategory('Q34038'), 'Nature');
-      expect(GlobalAttractionPipeline.mapWikidataCategory('Q16970'), 'Religious');
-      expect(GlobalAttractionPipeline.mapWikidataCategory('Q32815'), 'Religious');
-      expect(GlobalAttractionPipeline.mapWikidataCategory('Q860861'), 'Adventure');
-      expect(GlobalAttractionPipeline.mapWikidataCategory('Q132510'), 'Shopping');
-      expect(GlobalAttractionPipeline.mapWikidataCategory('Q1128877'), 'Food');
+    test(
+      'maps Wikidata types into TourMate canonical categories correctly',
+      () {
+        expect(
+          GlobalAttractionPipeline.mapWikidataCategory('Q570116'),
+          'Historical',
+        );
+        expect(
+          GlobalAttractionPipeline.mapWikidataCategory('Q33506'),
+          'Historical',
+        );
+        expect(
+          GlobalAttractionPipeline.mapWikidataCategory('Q4989906'),
+          'Historical',
+        );
+        expect(
+          GlobalAttractionPipeline.mapWikidataCategory('Q46169'),
+          'Nature',
+        );
+        expect(
+          GlobalAttractionPipeline.mapWikidataCategory('Q34038'),
+          'Nature',
+        );
+        expect(
+          GlobalAttractionPipeline.mapWikidataCategory('Q16970'),
+          'Religious',
+        );
+        expect(
+          GlobalAttractionPipeline.mapWikidataCategory('Q32815'),
+          'Religious',
+        );
+        expect(
+          GlobalAttractionPipeline.mapWikidataCategory('Q860861'),
+          'Adventure',
+        );
+        expect(
+          GlobalAttractionPipeline.mapWikidataCategory('Q132510'),
+          'Shopping',
+        );
+        expect(
+          GlobalAttractionPipeline.mapWikidataCategory('Q1128877'),
+          'Food',
+        );
 
-      // Unknown QID returns null for manual review
-      expect(GlobalAttractionPipeline.mapWikidataCategory('Q999999999'), isNull);
-    });
+        // Unknown QID returns null for manual review
+        expect(
+          GlobalAttractionPipeline.mapWikidataCategory('Q999999999'),
+          isNull,
+        );
+      },
+    );
   });
 
   group('Phase 2.6 — Duplicate Detection Engine', () {
@@ -160,21 +213,12 @@ void main() {
         GlobalAttractionPipeline.normalizeName('The Eiffel Tower!'),
         'eiffeltower',
       );
-      expect(
-        GlobalAttractionPipeline.normalizeName('Le Louvre'),
-        'louvre',
-      );
-      expect(
-        GlobalAttractionPipeline.normalizeName('El Prado'),
-        'prado',
-      );
+      expect(GlobalAttractionPipeline.normalizeName('Le Louvre'), 'louvre');
+      expect(GlobalAttractionPipeline.normalizeName('El Prado'), 'prado');
     });
 
     test('generates clean URL-safe slugs', () {
-      expect(
-        GlobalAttractionPipeline.slugify('Eiffel Tower'),
-        'eiffel-tower',
-      );
+      expect(GlobalAttractionPipeline.slugify('Eiffel Tower'), 'eiffel-tower');
       expect(
         GlobalAttractionPipeline.slugify("L'Anse aux Meadows!"),
         'lanse-aux-meadows',
@@ -192,30 +236,41 @@ void main() {
       AttractionService.testStream = null;
     });
 
-    test('watchAttractions supports limit, category, and country filtering', () async {
-      AttractionService.devFallbackEnabled = true;
+    test(
+      'watchAttractions supports limit, category, and country filtering',
+      () async {
+        AttractionService.devFallbackEnabled = true;
 
-      final allStream = AttractionService.instance.watchAttractions();
-      final all = await allStream.first;
-      expect(all.length, greaterThan(15));
+        final allStream = AttractionService.instance.watchAttractions();
+        final all = await allStream.first;
+        expect(all.length, greaterThan(15));
 
-      final limitedStream = AttractionService.instance.watchAttractions(limit: 5);
-      final limited = await limitedStream.first;
-      expect(limited.length, 5);
+        final limitedStream = AttractionService.instance.watchAttractions(
+          limit: 5,
+        );
+        final limited = await limitedStream.first;
+        expect(limited.length, 5);
 
-      final franceStream = AttractionService.instance.watchAttractions(country: 'France');
-      final france = await franceStream.first;
-      expect(france.every((a) => a.country == 'France'), isTrue);
+        final franceStream = AttractionService.instance.watchAttractions(
+          country: 'France',
+        );
+        final france = await franceStream.first;
+        expect(france.every((a) => a.country == 'France'), isTrue);
 
-      final natureStream = AttractionService.instance.watchAttractions(category: 'Nature');
-      final nature = await natureStream.first;
-      expect(nature.every((a) => a.category == 'Nature'), isTrue);
-    });
+        final natureStream = AttractionService.instance.watchAttractions(
+          category: 'Nature',
+        );
+        final nature = await natureStream.first;
+        expect(nature.every((a) => a.category == 'Nature'), isTrue);
+      },
+    );
 
     test('getAttractionsPage returns paginated chunks', () async {
       AttractionService.devFallbackEnabled = true;
 
-      final page1 = await AttractionService.instance.getAttractionsPage(limit: 4);
+      final page1 = await AttractionService.instance.getAttractionsPage(
+        limit: 4,
+      );
       expect(page1.length, 4);
 
       final pageFrance = await AttractionService.instance.getAttractionsPage(
@@ -255,7 +310,10 @@ void main() {
       SavedPlacesStore.instance.toggle('Charminar');
       expect(SavedPlacesStore.instance.isSaved('Charminar'), isTrue);
       expect(SavedPlacesStore.instance.savedAttractions.length, 1);
-      expect(SavedPlacesStore.instance.savedAttractions.first.name, 'Charminar');
+      expect(
+        SavedPlacesStore.instance.savedAttractions.first.name,
+        'Charminar',
+      );
     });
   });
 }

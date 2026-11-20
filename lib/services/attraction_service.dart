@@ -226,7 +226,9 @@ class AttractionService {
   /// Validates that an attraction conforms to required schema and constraints.
   void validateAttraction(Attraction attraction) {
     if (attraction.name.trim().isEmpty) {
-      throw const AttractionValidationException('Attraction name cannot be empty.');
+      throw const AttractionValidationException(
+        'Attraction name cannot be empty.',
+      );
     }
     if (attraction.category.trim().isEmpty) {
       throw const AttractionValidationException('Category cannot be empty.');
@@ -235,22 +237,30 @@ class AttractionService {
       throw const AttractionValidationException('Description cannot be empty.');
     }
     if (attraction.rating < 0.0 || attraction.rating > 5.0) {
-      throw const AttractionValidationException('Rating must be between 0.0 and 5.0.');
+      throw const AttractionValidationException(
+        'Rating must be between 0.0 and 5.0.',
+      );
     }
     if (attraction.latitude != null &&
         (attraction.latitude! < -90.0 || attraction.latitude! > 90.0)) {
-      throw const AttractionValidationException('Latitude must be between -90.0 and 90.0.');
+      throw const AttractionValidationException(
+        'Latitude must be between -90.0 and 90.0.',
+      );
     }
     if (attraction.longitude != null &&
         (attraction.longitude! < -180.0 || attraction.longitude! > 180.0)) {
-      throw const AttractionValidationException('Longitude must be between -180.0 and 180.0.');
+      throw const AttractionValidationException(
+        'Longitude must be between -180.0 and 180.0.',
+      );
     }
     if (attraction.imageUrl.trim().isEmpty) {
       throw const AttractionValidationException('Image URL cannot be empty.');
     }
     final uri = Uri.tryParse(attraction.imageUrl.trim());
     if (uri == null || (!uri.isScheme('http') && !uri.isScheme('https'))) {
-      throw const AttractionValidationException('Image URL must be a valid HTTP or HTTPS URL.');
+      throw const AttractionValidationException(
+        'Image URL must be a valid HTTP or HTTPS URL.',
+      );
     }
   }
 
@@ -261,7 +271,9 @@ class AttractionService {
         .toLowerCase()
         .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
         .replaceAll(RegExp(r'\s+'), '-');
-    return cleaned.isNotEmpty ? cleaned : 'attraction-${DateTime.now().millisecondsSinceEpoch}';
+    return cleaned.isNotEmpty
+        ? cleaned
+        : 'attraction-${DateTime.now().millisecondsSinceEpoch}';
   }
 
   /// Creates a new attraction document in `/attractions/{id}`.
@@ -273,14 +285,19 @@ class AttractionService {
         ? attraction.id.trim()
         : generateId(attraction.name);
 
-    final toCreate = attraction.id == id ? attraction : attraction.copyWith(id: id);
+    final toCreate = attraction.id == id
+        ? attraction
+        : attraction.copyWith(id: id);
 
     if (testAttractions != null) {
       if (testAttractions!.containsKey(id)) {
-        throw AttractionValidationException('An attraction with ID "$id" already exists.');
+        throw AttractionValidationException(
+          'An attraction with ID "$id" already exists.',
+        );
       }
       testAttractions![id] = toCreate;
-      if (testAttractionsStreamController != null && !testAttractionsStreamController!.isClosed) {
+      if (testAttractionsStreamController != null &&
+          !testAttractionsStreamController!.isClosed) {
         testAttractionsStreamController!.add(testAttractions!.values.toList());
       }
       return toCreate;
@@ -288,12 +305,16 @@ class AttractionService {
 
     final collection = _attractionsRef;
     if (collection == null) {
-      throw StateError('Firebase is not initialized. Cannot create attraction.');
+      throw StateError(
+        'Firebase is not initialized. Cannot create attraction.',
+      );
     }
 
     final existingDoc = await collection.doc(id).get();
     if (existingDoc.exists) {
-      throw AttractionValidationException('An attraction with ID "$id" already exists.');
+      throw AttractionValidationException(
+        'An attraction with ID "$id" already exists.',
+      );
     }
 
     await collection.doc(id).set(toCreate.toFirestore());
@@ -305,16 +326,21 @@ class AttractionService {
   Future<Attraction> updateAttraction(Attraction attraction) async {
     final id = attraction.id.trim();
     if (id.isEmpty) {
-      throw const AttractionValidationException('Cannot update attraction without an ID.');
+      throw const AttractionValidationException(
+        'Cannot update attraction without an ID.',
+      );
     }
     validateAttraction(attraction);
 
     if (testAttractions != null) {
       if (!testAttractions!.containsKey(id)) {
-        throw AttractionValidationException('Attraction with ID "$id" not found.');
+        throw AttractionValidationException(
+          'Attraction with ID "$id" not found.',
+        );
       }
       testAttractions![id] = attraction;
-      if (testAttractionsStreamController != null && !testAttractionsStreamController!.isClosed) {
+      if (testAttractionsStreamController != null &&
+          !testAttractionsStreamController!.isClosed) {
         testAttractionsStreamController!.add(testAttractions!.values.toList());
       }
       return attraction;
@@ -322,12 +348,16 @@ class AttractionService {
 
     final collection = _attractionsRef;
     if (collection == null) {
-      throw StateError('Firebase is not initialized. Cannot update attraction.');
+      throw StateError(
+        'Firebase is not initialized. Cannot update attraction.',
+      );
     }
 
     final existingDoc = await collection.doc(id).get();
     if (!existingDoc.exists) {
-      throw AttractionValidationException('Attraction with ID "$id" not found.');
+      throw AttractionValidationException(
+        'Attraction with ID "$id" not found.',
+      );
     }
 
     await collection.doc(id).update(attraction.toFirestore());
@@ -339,15 +369,20 @@ class AttractionService {
   Future<void> deleteAttraction(String id) async {
     final trimmedId = id.trim();
     if (trimmedId.isEmpty) {
-      throw const AttractionValidationException('Attraction ID cannot be empty.');
+      throw const AttractionValidationException(
+        'Attraction ID cannot be empty.',
+      );
     }
 
     if (testAttractions != null) {
       if (!testAttractions!.containsKey(trimmedId)) {
-        throw AttractionValidationException('Attraction with ID "$trimmedId" not found.');
+        throw AttractionValidationException(
+          'Attraction with ID "$trimmedId" not found.',
+        );
       }
       testAttractions!.remove(trimmedId);
-      if (testAttractionsStreamController != null && !testAttractionsStreamController!.isClosed) {
+      if (testAttractionsStreamController != null &&
+          !testAttractionsStreamController!.isClosed) {
         testAttractionsStreamController!.add(testAttractions!.values.toList());
       }
       return;
@@ -355,12 +390,16 @@ class AttractionService {
 
     final collection = _attractionsRef;
     if (collection == null) {
-      throw StateError('Firebase is not initialized. Cannot delete attraction.');
+      throw StateError(
+        'Firebase is not initialized. Cannot delete attraction.',
+      );
     }
 
     final existingDoc = await collection.doc(trimmedId).get();
     if (!existingDoc.exists) {
-      throw AttractionValidationException('Attraction with ID "$trimmedId" not found.');
+      throw AttractionValidationException(
+        'Attraction with ID "$trimmedId" not found.',
+      );
     }
 
     await collection.doc(trimmedId).delete();

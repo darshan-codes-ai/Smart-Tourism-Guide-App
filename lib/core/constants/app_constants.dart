@@ -20,4 +20,3 @@ class AppConstants {
     'Shopping',
   ];
 }
-

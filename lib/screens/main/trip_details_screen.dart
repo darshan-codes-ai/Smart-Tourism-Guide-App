@@ -10,6 +10,7 @@ import '../../services/itinerary_service.dart';
 import '../../services/recommendation_service.dart';
 import '../../services/trip_service.dart';
 import '../../widgets/attraction_card.dart';
+import '../../widgets/attraction_image.dart';
 import '../../widgets/trip_form_sheet.dart';
 import '../../widgets/trip_weather_card.dart';
 
@@ -885,33 +886,26 @@ class _ItineraryAttractionCard extends StatelessWidget {
               const SizedBox(width: 12),
 
               // Thumbnail
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  width: 56,
-                  height: 56,
-                  child: attraction != null
-                      ? Image.network(
-                          attraction!.imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              Container(
-                                color: theme.colorScheme.primaryContainer,
-                                child: Icon(
-                                  Icons.location_city_rounded,
-                                  color: theme.colorScheme.primary,
-                                ),
-                              ),
-                        )
-                      : Container(
-                          color: Colors.grey.shade200,
-                          child: const Icon(
-                            Icons.place_outlined,
-                            color: Colors.grey,
-                          ),
+              attraction != null
+                  ? AttractionImage(
+                      imageUrl: attraction!.imageUrl,
+                      category: attraction!.category,
+                      width: 56,
+                      height: 56,
+                      borderRadius: BorderRadius.circular(12),
+                    )
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        color: Colors.grey.shade200,
+                        child: const Icon(
+                          Icons.place_outlined,
+                          color: Colors.grey,
                         ),
-                ),
-              ),
+                      ),
+                    ),
               const SizedBox(width: 12),
 
               // Title, Category, Rating & Day Badge

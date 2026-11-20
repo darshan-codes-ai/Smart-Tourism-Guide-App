@@ -70,122 +70,137 @@ void main() {
   });
 
   group('ExploreScreen "All" category filter requirements', () {
-    testWidgets('1 & 2: "All" is the FIRST chip and list has all expected categories in order', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(1200, 800);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets(
+      '1 & 2: "All" is the FIRST chip and list has all expected categories in order',
+      (tester) async {
+        tester.view.physicalSize = const Size(1200, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-      AttractionService.testStream = Stream.value(sampleAttractions);
+        AttractionService.testStream = Stream.value(sampleAttractions);
 
-      await tester.pumpWidget(buildTestableWidget(const ExploreScreen()));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(buildTestableWidget(const ExploreScreen()));
+        await tester.pumpAndSettle();
 
-      final chipWidgets = tester
-          .widgetList<CategoryChip>(find.byType(CategoryChip))
-          .toList();
+        final chipWidgets = tester
+            .widgetList<CategoryChip>(find.byType(CategoryChip))
+            .toList();
 
-      expect(chipWidgets.isNotEmpty, isTrue);
-      expect(chipWidgets.first.label, equals('All'));
+        expect(chipWidgets.isNotEmpty, isTrue);
+        expect(chipWidgets.first.label, equals('All'));
 
-      // Expected category sequence: All | Historical | Nature | Religious | Adventure | Food | Shopping
-      final labels = chipWidgets.map((c) => c.label).toList();
-      expect(
-        labels,
-        equals([
-          'All',
-          'Historical',
-          'Nature',
-          'Religious',
-          'Adventure',
-          'Food',
-          'Shopping',
-        ]),
-      );
-    });
+        // Expected category sequence: All | Historical | Nature | Religious | Adventure | Food | Shopping
+        final labels = chipWidgets.map((c) => c.label).toList();
+        expect(
+          labels,
+          equals([
+            'All',
+            'Historical',
+            'Nature',
+            'Religious',
+            'Adventure',
+            'Food',
+            'Shopping',
+          ]),
+        );
+      },
+    );
 
-    testWidgets('3 & 4: On opening Explore, "All" is selected by default and all attractions are shown', (
-      tester,
-    ) async {
-      AttractionService.testStream = Stream.value(sampleAttractions);
+    testWidgets(
+      '3 & 4: On opening Explore, "All" is selected by default and all attractions are shown',
+      (tester) async {
+        AttractionService.testStream = Stream.value(sampleAttractions);
 
-      await tester.pumpWidget(buildTestableWidget(const ExploreScreen()));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(buildTestableWidget(const ExploreScreen()));
+        await tester.pumpAndSettle();
 
-      final allChipFinder = find.widgetWithText(CategoryChip, 'All');
-      final allChip = tester.widget<CategoryChip>(allChipFinder);
-      expect(allChip.selected, isTrue);
+        final allChipFinder = find.widgetWithText(CategoryChip, 'All');
+        final allChip = tester.widget<CategoryChip>(allChipFinder);
+        expect(allChip.selected, isTrue);
 
-      // All 3 sample attractions are shown
-      expect(find.byType(AttractionCard), findsNWidgets(3));
-      expect(find.text('Charminar'), findsOneWidget);
-      expect(find.text('Golconda Fort'), findsOneWidget);
-      expect(find.text('Hussain Sagar'), findsOneWidget);
+        // All 3 sample attractions are shown
+        expect(find.byType(AttractionCard), findsNWidgets(3));
+        expect(find.text('Charminar'), findsOneWidget);
+        expect(find.text('Golconda Fort'), findsOneWidget);
+        expect(find.text('Hussain Sagar'), findsOneWidget);
 
-      // Switch to Map: MapScreen receives all 3 attractions with coordinates
-      await tester.tap(find.text('Map'));
-      await tester.pumpAndSettle();
+        // Switch to Map: MapScreen receives all 3 attractions with coordinates
+        await tester.tap(find.text('Map'));
+        await tester.pumpAndSettle();
 
-      final markerLayer = tester.widget<MarkerLayer>(find.byType(MarkerLayer));
-      expect(markerLayer.markers.length, equals(3));
-    });
+        final markerLayer = tester.widget<MarkerLayer>(
+          find.byType(MarkerLayer),
+        );
+        expect(markerLayer.markers.length, equals(3));
+      },
+    );
 
-    testWidgets('5, 6, 7 & 8: Category selection filters attractions, tapping All resets, and unselecting resets to All', (
-      tester,
-    ) async {
-      AttractionService.testStream = Stream.value(sampleAttractions);
+    testWidgets(
+      '5, 6, 7 & 8: Category selection filters attractions, tapping All resets, and unselecting resets to All',
+      (tester) async {
+        AttractionService.testStream = Stream.value(sampleAttractions);
 
-      await tester.pumpWidget(buildTestableWidget(const ExploreScreen()));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(buildTestableWidget(const ExploreScreen()));
+        await tester.pumpAndSettle();
 
-      // Select 'Historical'
-      await tester.tap(find.widgetWithText(CategoryChip, 'Historical'));
-      await tester.pumpAndSettle();
+        // Select 'Historical'
+        await tester.tap(find.widgetWithText(CategoryChip, 'Historical'));
+        await tester.pumpAndSettle();
 
-      // 'Historical' is selected, 'All' is unselected
-      expect(
-        tester.widget<CategoryChip>(find.widgetWithText(CategoryChip, 'Historical')).selected,
-        isTrue,
-      );
-      expect(
-        tester.widget<CategoryChip>(find.widgetWithText(CategoryChip, 'All')).selected,
-        isFalse,
-      );
+        // 'Historical' is selected, 'All' is unselected
+        expect(
+          tester
+              .widget<CategoryChip>(
+                find.widgetWithText(CategoryChip, 'Historical'),
+              )
+              .selected,
+          isTrue,
+        );
+        expect(
+          tester
+              .widget<CategoryChip>(find.widgetWithText(CategoryChip, 'All'))
+              .selected,
+          isFalse,
+        );
 
-      // Only Historical attractions shown
-      expect(find.text('Charminar'), findsOneWidget);
-      expect(find.text('Golconda Fort'), findsOneWidget);
-      expect(find.text('Hussain Sagar'), findsNothing);
+        // Only Historical attractions shown
+        expect(find.text('Charminar'), findsOneWidget);
+        expect(find.text('Golconda Fort'), findsOneWidget);
+        expect(find.text('Hussain Sagar'), findsNothing);
 
-      // Tap 'All' chip
-      await tester.tap(find.widgetWithText(CategoryChip, 'All'));
-      await tester.pumpAndSettle();
+        // Tap 'All' chip
+        await tester.tap(find.widgetWithText(CategoryChip, 'All'));
+        await tester.pumpAndSettle();
 
-      // 'All' is selected again and all attractions return
-      expect(
-        tester.widget<CategoryChip>(find.widgetWithText(CategoryChip, 'All')).selected,
-        isTrue,
-      );
-      expect(find.text('Hussain Sagar'), findsOneWidget);
+        // 'All' is selected again and all attractions return
+        expect(
+          tester
+              .widget<CategoryChip>(find.widgetWithText(CategoryChip, 'All'))
+              .selected,
+          isTrue,
+        );
+        expect(find.text('Hussain Sagar'), findsOneWidget);
 
-      // Tap 'Nature'
-      await tester.tap(find.widgetWithText(CategoryChip, 'Nature'));
-      await tester.pumpAndSettle();
-      expect(find.text('Hussain Sagar'), findsOneWidget);
-      expect(find.text('Charminar'), findsNothing);
+        // Tap 'Nature'
+        await tester.tap(find.widgetWithText(CategoryChip, 'Nature'));
+        await tester.pumpAndSettle();
+        expect(find.text('Hussain Sagar'), findsOneWidget);
+        expect(find.text('Charminar'), findsNothing);
 
-      // Tap 'Nature' again (toggle off) -> reverts to 'All'
-      await tester.tap(find.widgetWithText(CategoryChip, 'Nature'));
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<CategoryChip>(find.widgetWithText(CategoryChip, 'All')).selected,
-        isTrue,
-      );
-      expect(find.text('Charminar'), findsOneWidget);
-      expect(find.text('Hussain Sagar'), findsOneWidget);
-    });
+        // Tap 'Nature' again (toggle off) -> reverts to 'All'
+        await tester.tap(find.widgetWithText(CategoryChip, 'Nature'));
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<CategoryChip>(find.widgetWithText(CategoryChip, 'All'))
+              .selected,
+          isTrue,
+        );
+        expect(find.text('Charminar'), findsOneWidget);
+        expect(find.text('Hussain Sagar'), findsOneWidget);
+      },
+    );
 
     testWidgets('9: Search filtering works together with the category filter', (
       tester,
@@ -207,7 +222,10 @@ void main() {
       await tester.tap(find.widgetWithText(CategoryChip, 'Nature'));
       await tester.pumpAndSettle();
 
-      expect(find.text('No attractions match your filters yet.'), findsOneWidget);
+      expect(
+        find.text('No attractions match your filters yet.'),
+        findsOneWidget,
+      );
 
       // Clear search -> Hussain Sagar appears
       await tester.enterText(find.byType(TextField), '');

@@ -8,10 +8,7 @@ import 'trip_form_sheet.dart';
 /// Modal bottom sheet allowing users to select an existing trip or create a new one
 /// to add a specific [Attraction].
 class AddToTripSheet extends StatelessWidget {
-  const AddToTripSheet({
-    super.key,
-    required this.attraction,
-  });
+  const AddToTripSheet({super.key, required this.attraction});
 
   final Attraction attraction;
 
@@ -101,7 +98,8 @@ class AddToTripSheet extends StatelessWidget {
                     return Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Column(
@@ -110,7 +108,9 @@ class AddToTripSheet extends StatelessWidget {
                           Icon(
                             Icons.luggage_outlined,
                             size: 44,
-                            color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.6,
+                            ),
                           ),
                           const SizedBox(height: 10),
                           Text(
@@ -136,8 +136,9 @@ class AddToTripSheet extends StatelessWidget {
                     separatorBuilder: (_, index) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final trip = trips[index];
-                      final isAlreadyAdded =
-                          trip.attractionIds.contains(attraction.id);
+                      final isAlreadyAdded = trip.attractionIds.contains(
+                        attraction.id,
+                      );
 
                       return Material(
                         color: isAlreadyAdded
@@ -194,7 +195,9 @@ class AddToTripSheet extends StatelessWidget {
                                   ),
                                   backgroundColor: Colors.green.shade50,
                                   padding: EdgeInsets.zero,
-                                  side: BorderSide(color: Colors.green.shade200),
+                                  side: BorderSide(
+                                    color: Colors.green.shade200,
+                                  ),
                                 )
                               : Icon(
                                   Icons.add_circle_outline_rounded,

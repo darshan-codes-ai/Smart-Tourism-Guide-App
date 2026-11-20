@@ -103,11 +103,14 @@ void main() {
       expect(caseAdminUser.isAdmin, isTrue);
     });
 
-    test('AdminService.isCurrentUserAdmin returns false when unauthenticated', () async {
-      AdminService.testIsAdminOverride = null;
-      final isAdmin = await AdminService.instance.isCurrentUserAdmin();
-      expect(isAdmin, isFalse);
-    });
+    test(
+      'AdminService.isCurrentUserAdmin returns false when unauthenticated',
+      () async {
+        AdminService.testIsAdminOverride = null;
+        final isAdmin = await AdminService.instance.isCurrentUserAdmin();
+        expect(isAdmin, isFalse);
+      },
+    );
 
     test('AdminService.isCurrentUserAdmin obeys testIsAdminOverride', () async {
       AdminService.testIsAdminOverride = true;
@@ -150,29 +153,51 @@ void main() {
 
       await FirestoreService.instance.ensureUserProfile(signingInUser);
 
-      final storedProfile = await FirestoreService.instance.getUserProfile('admin_uid_99');
+      final storedProfile = await FirestoreService.instance.getUserProfile(
+        'admin_uid_99',
+      );
       expect(storedProfile, isNotNull);
       expect(storedProfile!.role, 'admin');
       expect(storedProfile.isAdmin, isTrue);
       expect(storedProfile.name, 'Existing Admin Updated Name');
     });
 
-    test('AdminService.isUserAdmin returns correct status via Firestore profile', () async {
-      FirestoreService.testUsers = {
-        'user_reg': const AppUser(uid: 'user_reg', provider: 'password', role: 'user'),
-        'user_adm': const AppUser(uid: 'user_adm', provider: 'password', role: 'admin'),
-      };
+    test(
+      'AdminService.isUserAdmin returns correct status via Firestore profile',
+      () async {
+        FirestoreService.testUsers = {
+          'user_reg': const AppUser(
+            uid: 'user_reg',
+            provider: 'password',
+            role: 'user',
+          ),
+          'user_adm': const AppUser(
+            uid: 'user_adm',
+            provider: 'password',
+            role: 'admin',
+          ),
+        };
 
-      expect(await AdminService.instance.isUserAdmin('user_reg'), isFalse);
-      expect(await AdminService.instance.isUserAdmin('user_adm'), isTrue);
-      expect(await AdminService.instance.isUserAdmin('non_existent'), isFalse);
-    });
+        expect(await AdminService.instance.isUserAdmin('user_reg'), isFalse);
+        expect(await AdminService.instance.isUserAdmin('user_adm'), isTrue);
+        expect(
+          await AdminService.instance.isUserAdmin('non_existent'),
+          isFalse,
+        );
+      },
+    );
   });
 
   group('2. Attraction Validation Tests', () {
     test('generateId creates URL-safe slug from name', () {
-      expect(AttractionService.generateId('Statue of Liberty'), 'statue-of-liberty');
-      expect(AttractionService.generateId('Eiffel Tower! (Paris)'), 'eiffel-tower-paris');
+      expect(
+        AttractionService.generateId('Statue of Liberty'),
+        'statue-of-liberty',
+      );
+      expect(
+        AttractionService.generateId('Eiffel Tower! (Paris)'),
+        'eiffel-tower-paris',
+      );
       expect(AttractionService.generateId('Mount Fuji'), 'mount-fuji');
     });
 
@@ -187,11 +212,13 @@ void main() {
       final invalid = sampleAttraction1.copyWith(name: '   ');
       expect(
         () => AttractionService.instance.validateAttraction(invalid),
-        throwsA(isA<AttractionValidationException>().having(
-          (e) => e.message,
-          'message',
-          contains('name cannot be empty'),
-        )),
+        throwsA(
+          isA<AttractionValidationException>().having(
+            (e) => e.message,
+            'message',
+            contains('name cannot be empty'),
+          ),
+        ),
       );
     });
 
@@ -199,11 +226,13 @@ void main() {
       final invalid = sampleAttraction1.copyWith(category: '');
       expect(
         () => AttractionService.instance.validateAttraction(invalid),
-        throwsA(isA<AttractionValidationException>().having(
-          (e) => e.message,
-          'message',
-          contains('Category cannot be empty'),
-        )),
+        throwsA(
+          isA<AttractionValidationException>().having(
+            (e) => e.message,
+            'message',
+            contains('Category cannot be empty'),
+          ),
+        ),
       );
     });
 
@@ -211,11 +240,13 @@ void main() {
       final invalid = sampleAttraction1.copyWith(description: ' ');
       expect(
         () => AttractionService.instance.validateAttraction(invalid),
-        throwsA(isA<AttractionValidationException>().having(
-          (e) => e.message,
-          'message',
-          contains('Description cannot be empty'),
-        )),
+        throwsA(
+          isA<AttractionValidationException>().having(
+            (e) => e.message,
+            'message',
+            contains('Description cannot be empty'),
+          ),
+        ),
       );
     });
 
@@ -223,21 +254,25 @@ void main() {
       final invalidLow = sampleAttraction1.copyWith(rating: -0.5);
       expect(
         () => AttractionService.instance.validateAttraction(invalidLow),
-        throwsA(isA<AttractionValidationException>().having(
-          (e) => e.message,
-          'message',
-          contains('Rating must be between 0.0 and 5.0'),
-        )),
+        throwsA(
+          isA<AttractionValidationException>().having(
+            (e) => e.message,
+            'message',
+            contains('Rating must be between 0.0 and 5.0'),
+          ),
+        ),
       );
 
       final invalidHigh = sampleAttraction1.copyWith(rating: 5.5);
       expect(
         () => AttractionService.instance.validateAttraction(invalidHigh),
-        throwsA(isA<AttractionValidationException>().having(
-          (e) => e.message,
-          'message',
-          contains('Rating must be between 0.0 and 5.0'),
-        )),
+        throwsA(
+          isA<AttractionValidationException>().having(
+            (e) => e.message,
+            'message',
+            contains('Rating must be between 0.0 and 5.0'),
+          ),
+        ),
       );
     });
 
@@ -245,11 +280,13 @@ void main() {
       final invalidLat = sampleAttraction1.copyWith(latitude: 95.0);
       expect(
         () => AttractionService.instance.validateAttraction(invalidLat),
-        throwsA(isA<AttractionValidationException>().having(
-          (e) => e.message,
-          'message',
-          contains('Latitude must be between -90.0 and 90.0'),
-        )),
+        throwsA(
+          isA<AttractionValidationException>().having(
+            (e) => e.message,
+            'message',
+            contains('Latitude must be between -90.0 and 90.0'),
+          ),
+        ),
       );
     });
 
@@ -257,23 +294,29 @@ void main() {
       final invalidLng = sampleAttraction1.copyWith(longitude: -185.0);
       expect(
         () => AttractionService.instance.validateAttraction(invalidLng),
-        throwsA(isA<AttractionValidationException>().having(
-          (e) => e.message,
-          'message',
-          contains('Longitude must be between -180.0 and 180.0'),
-        )),
+        throwsA(
+          isA<AttractionValidationException>().having(
+            (e) => e.message,
+            'message',
+            contains('Longitude must be between -180.0 and 180.0'),
+          ),
+        ),
       );
     });
 
     test('invalid image URL throws validation exception', () {
-      final invalidImg = sampleAttraction1.copyWith(imageUrl: 'not_a_valid_url');
+      final invalidImg = sampleAttraction1.copyWith(
+        imageUrl: 'not_a_valid_url',
+      );
       expect(
         () => AttractionService.instance.validateAttraction(invalidImg),
-        throwsA(isA<AttractionValidationException>().having(
-          (e) => e.message,
-          'message',
-          contains('valid HTTP or HTTPS URL'),
-        )),
+        throwsA(
+          isA<AttractionValidationException>().having(
+            (e) => e.message,
+            'message',
+            contains('valid HTTP or HTTPS URL'),
+          ),
+        ),
       );
     });
   });
@@ -285,28 +328,44 @@ void main() {
       };
     });
 
-    test('createAttraction adds attraction and auto-generates id if missing', () async {
-      final toAdd = sampleAttraction2.copyWith(id: '');
-      final created = await AttractionService.instance.createAttraction(toAdd);
+    test(
+      'createAttraction adds attraction and auto-generates id if missing',
+      () async {
+        final toAdd = sampleAttraction2.copyWith(id: '');
+        final created = await AttractionService.instance.createAttraction(
+          toAdd,
+        );
 
-      expect(created.id, 'colosseum');
-      expect(AttractionService.testAttractions!.containsKey('colosseum'), isTrue);
-      expect(AttractionService.testAttractions!['colosseum']!.name, 'Colosseum');
-    });
+        expect(created.id, 'colosseum');
+        expect(
+          AttractionService.testAttractions!.containsKey('colosseum'),
+          isTrue,
+        );
+        expect(
+          AttractionService.testAttractions!['colosseum']!.name,
+          'Colosseum',
+        );
+      },
+    );
 
     test('createAttraction prevents duplicate attraction ID', () async {
       expect(
         () => AttractionService.instance.createAttraction(sampleAttraction1),
-        throwsA(isA<AttractionValidationException>().having(
-          (e) => e.message,
-          'message',
-          contains('already exists'),
-        )),
+        throwsA(
+          isA<AttractionValidationException>().having(
+            (e) => e.message,
+            'message',
+            contains('already exists'),
+          ),
+        ),
       );
     });
 
     test('updateAttraction modifies existing attraction', () async {
-      final updated = sampleAttraction1.copyWith(rating: 4.9, entryFee: '€28.0');
+      final updated = sampleAttraction1.copyWith(
+        rating: 4.9,
+        entryFee: '€28.0',
+      );
       final result = await AttractionService.instance.updateAttraction(updated);
 
       expect(result.rating, 4.9);
@@ -318,28 +377,38 @@ void main() {
       final nonExistent = sampleAttraction2.copyWith(id: 'non-existent-id');
       expect(
         () => AttractionService.instance.updateAttraction(nonExistent),
-        throwsA(isA<AttractionValidationException>().having(
-          (e) => e.message,
-          'message',
-          contains('not found'),
-        )),
+        throwsA(
+          isA<AttractionValidationException>().having(
+            (e) => e.message,
+            'message',
+            contains('not found'),
+          ),
+        ),
       );
     });
 
     test('deleteAttraction removes attraction from dataset', () async {
-      expect(AttractionService.testAttractions!.containsKey('eiffel-tower'), isTrue);
+      expect(
+        AttractionService.testAttractions!.containsKey('eiffel-tower'),
+        isTrue,
+      );
       await AttractionService.instance.deleteAttraction('eiffel-tower');
-      expect(AttractionService.testAttractions!.containsKey('eiffel-tower'), isFalse);
+      expect(
+        AttractionService.testAttractions!.containsKey('eiffel-tower'),
+        isFalse,
+      );
     });
 
     test('deleteAttraction on non-existent id throws exception', () async {
       expect(
         () => AttractionService.instance.deleteAttraction('does-not-exist'),
-        throwsA(isA<AttractionValidationException>().having(
-          (e) => e.message,
-          'message',
-          contains('not found'),
-        )),
+        throwsA(
+          isA<AttractionValidationException>().having(
+            (e) => e.message,
+            'message',
+            contains('not found'),
+          ),
+        ),
       );
     });
   });
@@ -357,11 +426,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Access Denied'), findsOneWidget);
-      expect(find.byKey(const Key('admin_unauthorized_return_button')), findsOneWidget);
+      expect(
+        find.byKey(const Key('admin_unauthorized_return_button')),
+        findsOneWidget,
+      );
       expect(find.text('Total Attractions'), findsNothing);
     });
 
-    testWidgets('authorized admin sees dashboard metrics and attractions', (tester) async {
+    testWidgets('authorized admin sees dashboard metrics and attractions', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -392,7 +466,10 @@ void main() {
       // Attractions list
       expect(find.text('Eiffel Tower'), findsOneWidget);
       expect(find.text('Colosseum'), findsOneWidget);
-      expect(find.byKey(const Key('admin_add_attraction_button')), findsOneWidget);
+      expect(
+        find.byKey(const Key('admin_add_attraction_button')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('search filters attraction list in real time', (tester) async {
@@ -421,7 +498,10 @@ void main() {
       expect(find.text('Colosseum'), findsOneWidget);
 
       // Search for Rome
-      await tester.enterText(find.byKey(const Key('admin_search_field')), 'Rome');
+      await tester.enterText(
+        find.byKey(const Key('admin_search_field')),
+        'Rome',
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Colosseum'), findsOneWidget);
@@ -442,41 +522,57 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byKey(const Key('admin_search_field')), 'Atlantis');
+      await tester.enterText(
+        find.byKey(const Key('admin_search_field')),
+        'Atlantis',
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('No attractions found'), findsOneWidget);
       expect(find.text('Clear Filters'), findsOneWidget);
     });
 
-    testWidgets('delete attraction prompts confirmation dialog and can be cancelled', (tester) async {
-      AdminService.testIsAdminOverride = true;
-      AttractionService.testAttractions = {
-        sampleAttraction1.id: sampleAttraction1,
-      };
+    testWidgets(
+      'delete attraction prompts confirmation dialog and can be cancelled',
+      (tester) async {
+        AdminService.testIsAdminOverride = true;
+        AttractionService.testAttractions = {
+          sampleAttraction1.id: sampleAttraction1,
+        };
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: const AdminDashboardScreen(),
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light(),
+            home: const AdminDashboardScreen(),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      // Tap delete on Eiffel Tower
-      await tester.tap(find.byKey(Key('admin_delete_button_${sampleAttraction1.id}')));
-      await tester.pumpAndSettle();
+        // Tap delete on Eiffel Tower
+        await tester.tap(
+          find.byKey(Key('admin_delete_button_${sampleAttraction1.id}')),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Delete Attraction'), findsOneWidget);
-      expect(find.textContaining('Are you sure you want to delete "Eiffel Tower"?'), findsOneWidget);
+        expect(find.text('Delete Attraction'), findsOneWidget);
+        expect(
+          find.textContaining(
+            'Are you sure you want to delete "Eiffel Tower"?',
+          ),
+          findsOneWidget,
+        );
 
-      // Cancel deletion
-      await tester.tap(find.byKey(const Key('admin_delete_cancel_button')));
-      await tester.pumpAndSettle();
+        // Cancel deletion
+        await tester.tap(find.byKey(const Key('admin_delete_cancel_button')));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Delete Attraction'), findsNothing);
-      expect(AttractionService.testAttractions!.containsKey('eiffel-tower'), isTrue);
-    });
+        expect(find.text('Delete Attraction'), findsNothing);
+        expect(
+          AttractionService.testAttractions!.containsKey('eiffel-tower'),
+          isTrue,
+        );
+      },
+    );
   });
 
   group('5. AttractionFormDialog Widget Tests', () {
@@ -484,17 +580,24 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: const Scaffold(
-            body: AttractionFormDialog(),
-          ),
+          home: const Scaffold(body: AttractionFormDialog()),
         ),
       );
       await tester.pumpAndSettle();
 
       // Clear all fields and tap Save
-      await tester.enterText(find.byKey(const Key('admin_attraction_name_field')), '');
-      await tester.enterText(find.byKey(const Key('admin_attraction_description_field')), '');
-      await tester.enterText(find.byKey(const Key('admin_attraction_image_url_field')), '');
+      await tester.enterText(
+        find.byKey(const Key('admin_attraction_name_field')),
+        '',
+      );
+      await tester.enterText(
+        find.byKey(const Key('admin_attraction_description_field')),
+        '',
+      );
+      await tester.enterText(
+        find.byKey(const Key('admin_attraction_image_url_field')),
+        '',
+      );
       await tester.tap(find.byKey(const Key('admin_attraction_save_button')));
       await tester.pumpAndSettle();
 
@@ -503,7 +606,9 @@ void main() {
       expect(find.text('Image URL is required.'), findsOneWidget);
     });
 
-    testWidgets('pre-populates existing attraction data when editing', (tester) async {
+    testWidgets('pre-populates existing attraction data when editing', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
@@ -523,174 +628,189 @@ void main() {
   });
 
   group('6. ProfileScreen Admin Tile Visibility Tests', () {
-    testWidgets('hides Admin Dashboard tile when user is not admin', (tester) async {
+    testWidgets('hides Admin Dashboard tile when user is not admin', (
+      tester,
+    ) async {
       AdminService.testIsAdminOverride = false;
 
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: const Scaffold(
-            body: ProfileScreen(),
-          ),
+          home: const Scaffold(body: ProfileScreen()),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('admin_dashboard_profile_tile')), findsNothing);
+      expect(
+        find.byKey(const Key('admin_dashboard_profile_tile')),
+        findsNothing,
+      );
       expect(find.text('Admin Dashboard'), findsNothing);
     });
 
-    testWidgets('shows Admin Dashboard tile when user is admin', (tester) async {
+    testWidgets('shows Admin Dashboard tile when user is admin', (
+      tester,
+    ) async {
       AdminService.testIsAdminOverride = true;
 
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: const Scaffold(
-            body: ProfileScreen(),
-          ),
+          home: const Scaffold(body: ProfileScreen()),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('admin_dashboard_profile_tile')), findsOneWidget);
+      expect(
+        find.byKey(const Key('admin_dashboard_profile_tile')),
+        findsOneWidget,
+      );
       expect(find.text('Admin Dashboard'), findsOneWidget);
     });
   });
 
   group('7. Admin Dashboard Stats & Country Filter Tests', () {
-    test('AdminService.getDashboardStats calculates comprehensive metrics', () async {
-      AdminService.testIsAdminOverride = true;
-      ReviewService.testReviews = {
-        'eiffel-tower': [
-          Review(
-            id: 'rev-1',
-            attractionId: 'eiffel-tower',
-            userId: 'u1',
-            userName: 'Traveler 1',
-            rating: 5.0,
-            comment: 'Stunning!',
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
+    test(
+      'AdminService.getDashboardStats calculates comprehensive metrics',
+      () async {
+        AdminService.testIsAdminOverride = true;
+        ReviewService.testReviews = {
+          'eiffel-tower': [
+            Review(
+              id: 'rev-1',
+              attractionId: 'eiffel-tower',
+              userId: 'u1',
+              userName: 'Traveler 1',
+              rating: 5.0,
+              comment: 'Stunning!',
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ),
+          ],
+          'colosseum': [
+            Review(
+              id: 'rev-2',
+              attractionId: 'colosseum',
+              userId: 'u2',
+              userName: 'Traveler 2',
+              rating: 4.0,
+              comment: 'Historic!',
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ),
+          ],
+        };
+        FirestoreService.testUsers = {
+          'u1': const AppUser(uid: 'u1', provider: 'password', role: 'user'),
+          'u2': const AppUser(uid: 'u2', provider: 'google', role: 'user'),
+        };
+        TripService.testTrips = {
+          'u1': [
+            Trip(
+              id: 'trip-1',
+              userId: 'u1',
+              name: 'Paris 2026',
+              destination: 'Paris',
+              startDate: DateTime(2026, 11, 1),
+              endDate: DateTime(2026, 11, 5),
+              attractionIds: ['eiffel-tower'],
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ),
+          ],
+        };
+
+        final stats = await AdminService.instance.getDashboardStats([
+          sampleAttraction1,
+          sampleAttraction2,
+        ]);
+
+        expect(stats.totalAttractions, 2);
+        expect(stats.averageRating, 4.75); // (4.8 + 4.7) / 2 = 4.75
+        expect(stats.totalReviews, 2);
+        expect(stats.totalUsers, 2);
+        expect(stats.totalTrips, 1);
+        expect(stats.usersRestricted, isFalse);
+        expect(stats.tripsRestricted, isFalse);
+      },
+    );
+
+    testWidgets(
+      'country filter chips filter attractions by country and can be cleared',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        AdminService.testIsAdminOverride = true;
+        AttractionService.testAttractions = {
+          sampleAttraction1.id: sampleAttraction1, // France
+          sampleAttraction2.id: sampleAttraction2, // Italy
+        };
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light(),
+            home: const AdminDashboardScreen(),
           ),
-        ],
-        'colosseum': [
-          Review(
-            id: 'rev-2',
-            attractionId: 'colosseum',
-            userId: 'u2',
-            userName: 'Traveler 2',
-            rating: 4.0,
-            comment: 'Historic!',
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ),
-        ],
-      };
-      FirestoreService.testUsers = {
-        'u1': const AppUser(uid: 'u1', provider: 'password', role: 'user'),
-        'u2': const AppUser(uid: 'u2', provider: 'google', role: 'user'),
-      };
-      TripService.testTrips = {
-        'u1': [
-          Trip(
-            id: 'trip-1',
-            userId: 'u1',
-            name: 'Paris 2026',
-            destination: 'Paris',
-            startDate: DateTime(2026, 11, 1),
-            endDate: DateTime(2026, 11, 5),
-            attractionIds: ['eiffel-tower'],
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ),
-        ],
-      };
+        );
+        await tester.pumpAndSettle();
 
-      final stats = await AdminService.instance.getDashboardStats([
-        sampleAttraction1,
-        sampleAttraction2,
-      ]);
+        expect(find.text('Eiffel Tower'), findsOneWidget);
+        expect(find.text('Colosseum'), findsOneWidget);
 
-      expect(stats.totalAttractions, 2);
-      expect(stats.averageRating, 4.75); // (4.8 + 4.7) / 2 = 4.75
-      expect(stats.totalReviews, 2);
-      expect(stats.totalUsers, 2);
-      expect(stats.totalTrips, 1);
-      expect(stats.usersRestricted, isFalse);
-      expect(stats.tripsRestricted, isFalse);
-    });
+        // Select France
+        await tester.ensureVisible(find.text('France (1)'));
+        await tester.tap(find.text('France (1)'));
+        await tester.pumpAndSettle();
 
-    testWidgets('country filter chips filter attractions by country and can be cleared', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+        expect(find.text('Eiffel Tower'), findsOneWidget);
+        expect(find.text('Colosseum'), findsNothing);
 
-      AdminService.testIsAdminOverride = true;
-      AttractionService.testAttractions = {
-        sampleAttraction1.id: sampleAttraction1, // France
-        sampleAttraction2.id: sampleAttraction2, // Italy
-      };
+        // Select All Countries resets
+        await tester.ensureVisible(find.text('All Countries'));
+        await tester.tap(find.text('All Countries'));
+        await tester.pumpAndSettle();
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: const AdminDashboardScreen(),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Eiffel Tower'), findsOneWidget);
-      expect(find.text('Colosseum'), findsOneWidget);
-
-      // Select France
-      await tester.ensureVisible(find.text('France (1)'));
-      await tester.tap(find.text('France (1)'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Eiffel Tower'), findsOneWidget);
-      expect(find.text('Colosseum'), findsNothing);
-
-      // Select All Countries resets
-      await tester.ensureVisible(find.text('All Countries'));
-      await tester.tap(find.text('All Countries'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Eiffel Tower'), findsOneWidget);
-      expect(find.text('Colosseum'), findsOneWidget);
-    });
+        expect(find.text('Eiffel Tower'), findsOneWidget);
+        expect(find.text('Colosseum'), findsOneWidget);
+      },
+    );
   });
 
   group('8. Review Moderation Admin Workflow Tests', () {
-    test('moderateDeleteReview removes review when caller is administrator', () async {
-      AdminService.testIsAdminOverride = true;
-      ReviewService.testReviews = {
-        'eiffel-tower': [
-          Review(
-            id: 'rev-spam',
-            attractionId: 'eiffel-tower',
-            userId: 'spammer',
-            userName: 'SpamUser',
-            rating: 1.0,
-            comment: 'Inappropriate spam comment.',
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ),
-        ],
-      };
+    test(
+      'moderateDeleteReview removes review when caller is administrator',
+      () async {
+        AdminService.testIsAdminOverride = true;
+        ReviewService.testReviews = {
+          'eiffel-tower': [
+            Review(
+              id: 'rev-spam',
+              attractionId: 'eiffel-tower',
+              userId: 'spammer',
+              userName: 'SpamUser',
+              rating: 1.0,
+              comment: 'Inappropriate spam comment.',
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ),
+          ],
+        };
 
-      expect(ReviewService.testReviews!['eiffel-tower']!.length, 1);
+        expect(ReviewService.testReviews!['eiffel-tower']!.length, 1);
 
-      await ReviewService.instance.moderateDeleteReview(
-        attractionId: 'eiffel-tower',
-        reviewId: 'rev-spam',
-      );
+        await ReviewService.instance.moderateDeleteReview(
+          attractionId: 'eiffel-tower',
+          reviewId: 'rev-spam',
+        );
 
-      expect(ReviewService.testReviews!['eiffel-tower']!.isEmpty, isTrue);
-    });
+        expect(ReviewService.testReviews!['eiffel-tower']!.isEmpty, isTrue);
+      },
+    );
 
     test('moderateDeleteReview throws AdminAuthorizationException when caller is not admin', () async {
       AdminService.testIsAdminOverride = false;
@@ -718,95 +838,115 @@ void main() {
       );
     });
 
-    testWidgets('admin can switch to Review Moderation tab and delete review with confirmation', (tester) async {
-      AdminService.testIsAdminOverride = true;
-      AttractionService.testAttractions = {sampleAttraction1.id: sampleAttraction1};
-      ReviewService.testReviews = {
-        'eiffel-tower': [
-          Review(
-            id: 'rev-inappropriate',
-            attractionId: 'eiffel-tower',
-            userId: 'bad-user',
-            userName: 'TrollUser',
-            rating: 1.0,
-            comment: 'Very inappropriate text.',
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
+    testWidgets(
+      'admin can switch to Review Moderation tab and delete review with confirmation',
+      (tester) async {
+        AdminService.testIsAdminOverride = true;
+        AttractionService.testAttractions = {
+          sampleAttraction1.id: sampleAttraction1,
+        };
+        ReviewService.testReviews = {
+          'eiffel-tower': [
+            Review(
+              id: 'rev-inappropriate',
+              attractionId: 'eiffel-tower',
+              userId: 'bad-user',
+              userName: 'TrollUser',
+              rating: 1.0,
+              comment: 'Very inappropriate text.',
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ),
+          ],
+        };
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light(),
+            home: const AdminDashboardScreen(),
           ),
-        ],
-      };
+        );
+        await tester.pumpAndSettle();
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: const AdminDashboardScreen(),
-        ),
-      );
-      await tester.pumpAndSettle();
+        // Switch to Review Moderation tab
+        await tester.tap(find.text('Review Moderation'));
+        await tester.pumpAndSettle();
 
-      // Switch to Review Moderation tab
-      await tester.tap(find.text('Review Moderation'));
-      await tester.pumpAndSettle();
+        expect(find.text('TrollUser'), findsOneWidget);
+        expect(find.text('Very inappropriate text.'), findsOneWidget);
+        expect(find.text('Flagged: Low Rating'), findsOneWidget);
 
-      expect(find.text('TrollUser'), findsOneWidget);
-      expect(find.text('Very inappropriate text.'), findsOneWidget);
-      expect(find.text('Flagged: Low Rating'), findsOneWidget);
+        // Tap Remove Review
+        await tester.tap(
+          find.byKey(const Key('admin_delete_review_button_rev-inappropriate')),
+        );
+        await tester.pumpAndSettle();
 
-      // Tap Remove Review
-      await tester.tap(find.byKey(const Key('admin_delete_review_button_rev-inappropriate')));
-      await tester.pumpAndSettle();
+        expect(find.text('Moderate Review'), findsOneWidget);
+        expect(
+          find.byKey(const Key('admin_mod_confirm_button')),
+          findsOneWidget,
+        );
 
-      expect(find.text('Moderate Review'), findsOneWidget);
-      expect(find.byKey(const Key('admin_mod_confirm_button')), findsOneWidget);
+        // Confirm removal
+        await tester.tap(find.byKey(const Key('admin_mod_confirm_button')));
+        await tester.pumpAndSettle();
 
-      // Confirm removal
-      await tester.tap(find.byKey(const Key('admin_mod_confirm_button')));
-      await tester.pumpAndSettle();
-
-      expect(ReviewService.testReviews!['eiffel-tower']!.isEmpty, isTrue);
-    });
+        expect(ReviewService.testReviews!['eiffel-tower']!.isEmpty, isTrue);
+      },
+    );
   });
 
   group('9. Users & Security Audit View Tests', () {
-    testWidgets('admin can switch to Users & Security tab and view registered accounts and policy', (tester) async {
-      AdminService.testIsAdminOverride = true;
-      AttractionService.testAttractions = {sampleAttraction1.id: sampleAttraction1};
-      FirestoreService.testUsers = {
-        'admin_1': const AppUser(
-          uid: 'admin_1',
-          name: 'Super Admin',
-          email: 'admin@tourmate.app',
-          provider: 'password',
-          role: 'admin',
-        ),
-        'traveler_1': const AppUser(
-          uid: 'traveler_1',
-          name: 'Jane Traveler',
-          email: 'jane@example.com',
-          provider: 'google',
-          role: 'user',
-        ),
-      };
+    testWidgets(
+      'admin can switch to Users & Security tab and view registered accounts and policy',
+      (tester) async {
+        AdminService.testIsAdminOverride = true;
+        AttractionService.testAttractions = {
+          sampleAttraction1.id: sampleAttraction1,
+        };
+        FirestoreService.testUsers = {
+          'admin_1': const AppUser(
+            uid: 'admin_1',
+            name: 'Super Admin',
+            email: 'admin@tourmate.app',
+            provider: 'password',
+            role: 'admin',
+          ),
+          'traveler_1': const AppUser(
+            uid: 'traveler_1',
+            name: 'Jane Traveler',
+            email: 'jane@example.com',
+            provider: 'google',
+            role: 'user',
+          ),
+        };
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: const AdminDashboardScreen(),
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light(),
+            home: const AdminDashboardScreen(),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      // Switch to Users & Security tab
-      await tester.tap(find.text('Users & Security'));
-      await tester.pumpAndSettle();
+        // Switch to Users & Security tab
+        await tester.tap(find.text('Users & Security'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Security & Access Control Architecture'), findsOneWidget);
-      expect(find.text('Registered User Accounts (Audit Directory)'), findsOneWidget);
-      expect(find.text('Super Admin'), findsOneWidget);
-      expect(find.text('ADMIN'), findsOneWidget);
-      expect(find.text('Jane Traveler'), findsOneWidget);
-      expect(find.text('USER'), findsOneWidget);
-    });
+        expect(
+          find.text('Security & Access Control Architecture'),
+          findsOneWidget,
+        );
+        expect(
+          find.text('Registered User Accounts (Audit Directory)'),
+          findsOneWidget,
+        );
+        expect(find.text('Super Admin'), findsOneWidget);
+        expect(find.text('ADMIN'), findsOneWidget);
+        expect(find.text('Jane Traveler'), findsOneWidget);
+        expect(find.text('USER'), findsOneWidget);
+      },
+    );
   });
 }
-

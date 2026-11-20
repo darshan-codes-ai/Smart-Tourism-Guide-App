@@ -90,8 +90,7 @@ class Review {
     String id,
     Map<String, dynamic> data, {
     String attractionId = '',
-  }) =>
-      Review.fromFirestore(id, data, attractionId: attractionId);
+  }) => Review.fromFirestore(id, data, attractionId: attractionId);
 
   static double _parseRating(dynamic value) {
     if (value is num) return value.toDouble().clamp(1.0, 5.0);
@@ -115,4 +114,3 @@ class Review {
     return DateTime.now();
   }
 }
-

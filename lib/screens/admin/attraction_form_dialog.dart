@@ -6,10 +6,7 @@ import '../../services/attraction_service.dart';
 
 /// Modal dialog for creating or editing an attraction.
 class AttractionFormDialog extends StatefulWidget {
-  const AttractionFormDialog({
-    super.key,
-    this.attraction,
-  });
+  const AttractionFormDialog({super.key, this.attraction});
 
   final Attraction? attraction;
 
@@ -51,15 +48,21 @@ class _AttractionFormDialogState extends State<AttractionFormDialog> {
     super.initState();
     final a = widget.attraction;
     _nameController = TextEditingController(text: a?.name ?? '');
-    _categoryController = TextEditingController(text: a?.category ?? 'Landmark');
+    _categoryController = TextEditingController(
+      text: a?.category ?? 'Landmark',
+    );
     _cityController = TextEditingController(text: a?.city ?? '');
     _countryController = TextEditingController(text: a?.country ?? '');
     _locationController = TextEditingController(text: a?.location ?? '');
     _descriptionController = TextEditingController(text: a?.description ?? '');
     _imageUrlController = TextEditingController(text: a?.imageUrl ?? '');
-    _ratingController = TextEditingController(text: a != null ? a.rating.toString() : '4.5');
+    _ratingController = TextEditingController(
+      text: a != null ? a.rating.toString() : '4.5',
+    );
     _entryFeeController = TextEditingController(text: a?.entryFee ?? 'Free');
-    _openingHoursController = TextEditingController(text: a?.openingHours ?? '09:00 - 18:00');
+    _openingHoursController = TextEditingController(
+      text: a?.openingHours ?? '09:00 - 18:00',
+    );
     _latitudeController = TextEditingController(
       text: a?.latitude != null ? a!.latitude.toString() : '',
     );
@@ -118,7 +121,9 @@ class _AttractionFormDialogState extends State<AttractionFormDialog> {
       city: city,
       country: country,
       location: location,
-      entryFee: _entryFeeController.text.trim().isEmpty ? 'Free' : _entryFeeController.text.trim(),
+      entryFee: _entryFeeController.text.trim().isEmpty
+          ? 'Free'
+          : _entryFeeController.text.trim(),
       openingHours: _openingHoursController.text.trim().isEmpty
           ? '09:00 - 18:00'
           : _openingHoursController.text.trim(),
@@ -177,7 +182,9 @@ class _AttractionFormDialogState extends State<AttractionFormDialog> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      _isEditing ? Icons.edit_rounded : Icons.add_location_alt_rounded,
+                      _isEditing
+                          ? Icons.edit_rounded
+                          : Icons.add_location_alt_rounded,
                       color: AppTheme.primary,
                       size: 24,
                     ),
@@ -196,7 +203,9 @@ class _AttractionFormDialogState extends State<AttractionFormDialog> {
                   IconButton(
                     icon: const Icon(Icons.close_rounded),
                     tooltip: 'Close',
-                    onPressed: _isSaving ? null : () => Navigator.of(context).pop(false),
+                    onPressed: _isSaving
+                        ? null
+                        : () => Navigator.of(context).pop(false),
                   ),
                 ],
               ),
@@ -204,7 +213,10 @@ class _AttractionFormDialogState extends State<AttractionFormDialog> {
 
               if (_errorMessage != null) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.red.shade50,
                     borderRadius: BorderRadius.circular(12),
@@ -212,7 +224,11 @@ class _AttractionFormDialogState extends State<AttractionFormDialog> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.error_outline_rounded, color: Colors.red.shade700, size: 20),
+                      Icon(
+                        Icons.error_outline_rounded,
+                        color: Colors.red.shade700,
+                        size: 20,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -281,18 +297,26 @@ class _AttractionFormDialogState extends State<AttractionFormDialog> {
                             child: TextFormField(
                               key: const Key('admin_attraction_rating_field'),
                               controller: _ratingController,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                               decoration: const InputDecoration(
                                 labelText: 'Rating (0.0 - 5.0) *',
                                 hintText: 'e.g. 4.7',
-                                prefixIcon: Icon(Icons.star_rounded, color: Colors.amber),
+                                prefixIcon: Icon(
+                                  Icons.star_rounded,
+                                  color: Colors.amber,
+                                ),
                               ),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Rating is required.';
                                 }
                                 final parsed = double.tryParse(value.trim());
-                                if (parsed == null || parsed < 0.0 || parsed > 5.0) {
+                                if (parsed == null ||
+                                    parsed < 0.0 ||
+                                    parsed > 5.0) {
                                   return 'Rating must be 0.0 - 5.0.';
                                 }
                                 return null;
@@ -361,7 +385,9 @@ class _AttractionFormDialogState extends State<AttractionFormDialog> {
                             return 'Image URL is required.';
                           }
                           final uri = Uri.tryParse(value.trim());
-                          if (uri == null || (!uri.isScheme('http') && !uri.isScheme('https'))) {
+                          if (uri == null ||
+                              (!uri.isScheme('http') &&
+                                  !uri.isScheme('https'))) {
                             return 'Enter a valid HTTP or HTTPS URL.';
                           }
                           return null;
@@ -431,19 +457,24 @@ class _AttractionFormDialogState extends State<AttractionFormDialog> {
                             child: TextFormField(
                               key: const Key('admin_attraction_lat_field'),
                               controller: _latitudeController,
-                              keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true,
-                                signed: true,
-                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                    signed: true,
+                                  ),
                               decoration: const InputDecoration(
                                 labelText: 'Latitude (-90 to 90)',
                                 hintText: 'e.g. 48.8584',
                                 prefixIcon: Icon(Icons.my_location_rounded),
                               ),
                               validator: (value) {
-                                if (value == null || value.trim().isEmpty) return null;
+                                if (value == null || value.trim().isEmpty) {
+                                  return null;
+                                }
                                 final parsed = double.tryParse(value.trim());
-                                if (parsed == null || parsed < -90.0 || parsed > 90.0) {
+                                if (parsed == null ||
+                                    parsed < -90.0 ||
+                                    parsed > 90.0) {
                                   return 'Must be between -90 and 90.';
                                 }
                                 return null;
@@ -455,19 +486,24 @@ class _AttractionFormDialogState extends State<AttractionFormDialog> {
                             child: TextFormField(
                               key: const Key('admin_attraction_lng_field'),
                               controller: _longitudeController,
-                              keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true,
-                                signed: true,
-                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                    signed: true,
+                                  ),
                               decoration: const InputDecoration(
                                 labelText: 'Longitude (-180 to 180)',
                                 hintText: 'e.g. 2.2945',
                                 prefixIcon: Icon(Icons.map_rounded),
                               ),
                               validator: (value) {
-                                if (value == null || value.trim().isEmpty) return null;
+                                if (value == null || value.trim().isEmpty) {
+                                  return null;
+                                }
                                 final parsed = double.tryParse(value.trim());
-                                if (parsed == null || parsed < -180.0 || parsed > 180.0) {
+                                if (parsed == null ||
+                                    parsed < -180.0 ||
+                                    parsed > 180.0) {
                                   return 'Must be between -180 and 180.';
                                 }
                                 return null;
@@ -488,11 +524,18 @@ class _AttractionFormDialogState extends State<AttractionFormDialog> {
                 children: [
                   OutlinedButton(
                     key: const Key('admin_attraction_cancel_button'),
-                    onPressed: _isSaving ? null : () => Navigator.of(context).pop(false),
+                    onPressed: _isSaving
+                        ? null
+                        : () => Navigator.of(context).pop(false),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(0, 44),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     child: const Text('Cancel'),
                   ),
@@ -503,8 +546,13 @@ class _AttractionFormDialogState extends State<AttractionFormDialog> {
                     style: FilledButton.styleFrom(
                       backgroundColor: AppTheme.primary,
                       minimumSize: const Size(0, 44),
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     icon: _isSaving
                         ? const SizedBox(
@@ -516,7 +564,11 @@ class _AttractionFormDialogState extends State<AttractionFormDialog> {
                             ),
                           )
                         : const Icon(Icons.check_rounded, size: 20),
-                    label: Text(_isSaving ? 'Saving...' : (_isEditing ? 'Save Changes' : 'Create')),
+                    label: Text(
+                      _isSaving
+                          ? 'Saving...'
+                          : (_isEditing ? 'Save Changes' : 'Create'),
+                    ),
                   ),
                 ],
               ),
@@ -527,4 +579,3 @@ class _AttractionFormDialogState extends State<AttractionFormDialog> {
     );
   }
 }
-

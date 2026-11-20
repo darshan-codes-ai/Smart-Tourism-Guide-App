@@ -73,8 +73,18 @@ class Trip {
   }
 
   static const List<String> _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   /// Human-readable date range formatting (e.g. "10 Oct – 14 Oct 2026").
@@ -187,7 +197,9 @@ class Trip {
     };
     if (budget != null) map['budget'] = budget;
     if (dayItinerary.isNotEmpty) {
-      map['dayItinerary'] = dayItinerary.map((k, v) => MapEntry(k.toString(), v));
+      map['dayItinerary'] = dayItinerary.map(
+        (k, v) => MapEntry(k.toString(), v),
+      );
     }
     return map;
   }
@@ -208,7 +220,9 @@ class Trip {
     };
     if (budget != null) map['budget'] = budget;
     if (dayItinerary.isNotEmpty) {
-      map['dayItinerary'] = dayItinerary.map((k, v) => MapEntry(k.toString(), v));
+      map['dayItinerary'] = dayItinerary.map(
+        (k, v) => MapEntry(k.toString(), v),
+      );
     }
     return map;
   }

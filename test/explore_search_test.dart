@@ -293,7 +293,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Tokyo Skytree'), findsOneWidget);
-      expect(find.text('Fushimi Inari Taisha'), findsNothing); // Fushimi is Religious
+      expect(
+        find.text('Fushimi Inari Taisha'),
+        findsNothing,
+      ); // Fushimi is Religious
 
       // Switch category to Religious while search is 'Tokyo' -> 0 matches
       await tester.tap(find.widgetWithText(CategoryChip, 'Religious'));

@@ -7,6 +7,7 @@ import '../../data/dummy_data.dart';
 import '../../models/attraction.dart';
 import '../../services/attraction_service.dart';
 import '../../widgets/attraction_card.dart';
+import '../../widgets/attraction_image.dart';
 import '../../widgets/category_chip.dart';
 
 /// Interactive map screen showing attraction markers on OpenStreetMap tiles.
@@ -141,7 +142,8 @@ class _MapScreenState extends State<MapScreen> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (snapshot.hasError && (!snapshot.hasData || snapshot.data!.isEmpty)) {
+        if (snapshot.hasError &&
+            (!snapshot.hasData || snapshot.data!.isEmpty)) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
@@ -201,10 +203,7 @@ class _MapScreenState extends State<MapScreen> {
                 setState(() => _selectedAttraction = attraction);
                 _moveToAttraction(attraction);
               },
-              child: _MarkerPin(
-                attraction: attraction,
-                isSelected: isSelected,
-              ),
+              child: _MarkerPin(attraction: attraction, isSelected: isSelected),
             ),
           ),
         );
@@ -342,9 +341,7 @@ class _MapScreenState extends State<MapScreen> {
 
     if (widget.showAppBar) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Map View'),
-        ),
+        appBar: AppBar(title: const Text('Map View')),
         body: content,
       );
     }
@@ -355,10 +352,7 @@ class _MapScreenState extends State<MapScreen> {
 
 /// Custom map marker pin styled with TourMate primary palette.
 class _MarkerPin extends StatelessWidget {
-  const _MarkerPin({
-    required this.attraction,
-    required this.isSelected,
-  });
+  const _MarkerPin({required this.attraction, required this.isSelected});
 
   final Attraction attraction;
   final bool isSelected;
@@ -366,7 +360,9 @@ class _MarkerPin extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final primaryColor = isSelected ? const Color(0xFFE53935) : theme.colorScheme.primary;
+    final primaryColor = isSelected
+        ? const Color(0xFFE53935)
+        : theme.colorScheme.primary;
 
     return AnimatedScale(
       scale: isSelected ? 1.15 : 1.0,
@@ -430,21 +426,12 @@ class _MapAttractionPreviewCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Image Thumbnail
-              ClipRRect(
+              AttractionImage(
+                imageUrl: attraction.imageUrl,
+                category: attraction.category,
+                width: 76,
+                height: 76,
                 borderRadius: BorderRadius.circular(14),
-                child: SizedBox(
-                  width: 76,
-                  height: 76,
-                  child: attraction.imageUrl.isNotEmpty
-                      ? Image.network(
-                          attraction.imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => _FallbackThumbnail(
-                            category: attraction.category,
-                          ),
-                        )
-                      : _FallbackThumbnail(category: attraction.category),
-                ),
               ),
               const SizedBox(width: 12),
 
@@ -520,14 +507,21 @@ class _MapAttractionPreviewCard extends StatelessWidget {
                   ListenableBuilder(
                     listenable: SavedPlacesStore.instance,
                     builder: (context, _) {
-                      final saved = SavedPlacesStore.instance.isSaved(attraction.id);
+                      final saved = SavedPlacesStore.instance.isSaved(
+                        attraction.id,
+                      );
                       return IconButton(
                         icon: Icon(
-                          saved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                          color: saved ? const Color(0xFFE53935) : theme.colorScheme.primary,
+                          saved
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
+                          color: saved
+                              ? const Color(0xFFE53935)
+                              : theme.colorScheme.primary,
                           size: 22,
                         ),
-                        onPressed: () => SavedPlacesStore.instance.toggle(attraction.id),
+                        onPressed: () =>
+                            SavedPlacesStore.instance.toggle(attraction.id),
                         visualDensity: VisualDensity.compact,
                         tooltip: saved ? 'Remove from saved' : 'Save place',
                       );
@@ -537,26 +531,6 @@ class _MapAttractionPreviewCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FallbackThumbnail extends StatelessWidget {
-  const _FallbackThumbnail({required this.category});
-
-  final String category;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: const Color(0xFFD7EBEA),
-      child: Center(
-        child: Icon(
-          CategoryChip.iconFor(category),
-          size: 32,
-          color: Theme.of(context).colorScheme.primary,
         ),
       ),
     );

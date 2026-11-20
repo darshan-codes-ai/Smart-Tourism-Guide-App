@@ -168,28 +168,29 @@ void main() {
       expect(find.text('Recommended'), findsOneWidget);
     });
 
-    testWidgets('ExploreScreen search matches across name, city, country, category', (
-      tester,
-    ) async {
-      AttractionService.testStream = Stream.value(DummyData.attractions);
+    testWidgets(
+      'ExploreScreen search matches across name, city, country, category',
+      (tester) async {
+        AttractionService.testStream = Stream.value(DummyData.attractions);
 
-      await tester.pumpWidget(buildTestable(const ExploreScreen()));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(buildTestable(const ExploreScreen()));
+        await tester.pumpAndSettle();
 
-      // Search by Country: 'France' -> matches Eiffel Tower & Louvre
-      await tester.enterText(find.byType(TextField), 'France');
-      await tester.pumpAndSettle();
-      expect(find.text('Eiffel Tower'), findsOneWidget);
-      expect(find.text('Louvre Museum'), findsOneWidget);
-      expect(find.text('Colosseum'), findsNothing);
+        // Search by Country: 'France' -> matches Eiffel Tower & Louvre
+        await tester.enterText(find.byType(TextField), 'France');
+        await tester.pumpAndSettle();
+        expect(find.text('Eiffel Tower'), findsOneWidget);
+        expect(find.text('Louvre Museum'), findsOneWidget);
+        expect(find.text('Colosseum'), findsNothing);
 
-      // Search by City: 'Tokyo' -> matches Tokyo Skytree & Tsukiji Outer Market
-      await tester.enterText(find.byType(TextField), 'Tokyo');
-      await tester.pumpAndSettle();
-      expect(find.text('Tokyo Skytree'), findsOneWidget);
-      expect(find.text('Tsukiji Outer Market'), findsOneWidget);
-      expect(find.text('Eiffel Tower'), findsNothing);
-    });
+        // Search by City: 'Tokyo' -> matches Tokyo Skytree & Tsukiji Outer Market
+        await tester.enterText(find.byType(TextField), 'Tokyo');
+        await tester.pumpAndSettle();
+        expect(find.text('Tokyo Skytree'), findsOneWidget);
+        expect(find.text('Tsukiji Outer Market'), findsOneWidget);
+        expect(find.text('Eiffel Tower'), findsNothing);
+      },
+    );
   });
 
   group('Global Migration - MapScreen global bounds and fallback', () {

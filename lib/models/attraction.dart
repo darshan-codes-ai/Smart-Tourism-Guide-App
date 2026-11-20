@@ -18,6 +18,9 @@ class Attraction {
     this.currency,
     this.openingTime,
     this.closingTime,
+    this.imageLicense,
+    this.imageAuthor,
+    this.imageSourceUrl,
     required this.distance,
     required this.location,
     required this.openingHours,
@@ -41,6 +44,9 @@ class Attraction {
   final String? currency;
   final String? openingTime;
   final String? closingTime;
+  final String? imageLicense;
+  final String? imageAuthor;
+  final String? imageSourceUrl;
   final String distance;
   final String location;
   final String openingHours;
@@ -74,6 +80,27 @@ class Attraction {
       return country;
     }
     return location;
+  }
+
+  /// In-memory cache of verified attraction photographs for Firestore documents
+  /// that have missing or broken image URLs.
+  static final Map<String, String> localImageLookup = {
+    'charminar': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Charminar_Hyderabad_1.jpg/960px-Charminar_Hyderabad_1.jpg',
+  };
+
+  /// Returns a verified fallback photograph URL for an attraction by [id] or [name].
+  static String? fallbackImageFor(String id, [String? name]) {
+    final key = id.trim().toLowerCase();
+    if (localImageLookup.containsKey(key)) {
+      return localImageLookup[key];
+    }
+    if (name != null) {
+      final nameKey = name.trim().toLowerCase();
+      if (localImageLookup.containsKey(nameKey)) {
+        return localImageLookup[nameKey];
+      }
+    }
+    return null;
   }
 
   /// Factory constructor to parse directly from a JSON map.
@@ -129,12 +156,19 @@ class Attraction {
     final String? openingTime = data['openingTime']?.toString();
     final String? closingTime = data['closingTime']?.toString();
 
+    String rawImageUrl = data['imageUrl']?.toString() ?? '';
+    if (rawImageUrl.isEmpty ||
+        rawImageUrl.contains('photo-1626192292711-1a3a7e0c4e3a')) {
+      rawImageUrl =
+          fallbackImageFor(id, data['name']?.toString()) ?? rawImageUrl;
+    }
+
     return Attraction(
       id: id,
       name: data['name']?.toString() ?? 'Unnamed attraction',
       category: data['category']?.toString() ?? 'Other',
       description: data['description']?.toString() ?? '',
-      imageUrl: data['imageUrl']?.toString() ?? '',
+      imageUrl: rawImageUrl,
       rating: _parseRating(data['rating']),
       city: city,
       country: country,
@@ -144,6 +178,9 @@ class Attraction {
       currency: currency,
       openingTime: openingTime,
       closingTime: closingTime,
+      imageLicense: data['imageLicense']?.toString(),
+      imageAuthor: data['imageAuthor']?.toString(),
+      imageSourceUrl: data['imageSourceUrl']?.toString(),
       distance: _parseDistance(data['distance']),
       location: resolvedLocation,
       openingHours: _parseOpeningHours(
@@ -224,6 +261,9 @@ class Attraction {
       'country': country,
       if (countryCode != null) 'countryCode': countryCode,
       if (currency != null) 'currency': currency,
+      if (imageLicense != null) 'imageLicense': imageLicense,
+      if (imageAuthor != null) 'imageAuthor': imageAuthor,
+      if (imageSourceUrl != null) 'imageSourceUrl': imageSourceUrl,
       'distance': distance,
       'location': location,
       'openingHours': openingHours,
@@ -254,6 +294,9 @@ class Attraction {
     String? currency,
     String? openingTime,
     String? closingTime,
+    String? imageLicense,
+    String? imageAuthor,
+    String? imageSourceUrl,
     String? distance,
     String? location,
     String? openingHours,
@@ -277,6 +320,9 @@ class Attraction {
       currency: currency ?? this.currency,
       openingTime: openingTime ?? this.openingTime,
       closingTime: closingTime ?? this.closingTime,
+      imageLicense: imageLicense ?? this.imageLicense,
+      imageAuthor: imageAuthor ?? this.imageAuthor,
+      imageSourceUrl: imageSourceUrl ?? this.imageSourceUrl,
       distance: distance ?? this.distance,
       location: location ?? this.location,
       openingHours: openingHours ?? this.openingHours,

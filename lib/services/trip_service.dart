@@ -63,7 +63,8 @@ class TripService {
   }
 
   /// Returns whether a user session is active (or test user active).
-  bool get isAuthenticated => currentUserId != null && currentUserId!.isNotEmpty;
+  bool get isAuthenticated =>
+      currentUserId != null && currentUserId!.isNotEmpty;
 
   FirebaseFirestore? get _firestore {
     if (Firebase.apps.isEmpty) return null;
@@ -98,10 +99,9 @@ class TripService {
       return const Stream<List<Trip>>.empty();
     }
 
-    return collection
-        .orderBy('startDate', descending: false)
-        .snapshots()
-        .map((snapshot) {
+    return collection.orderBy('startDate', descending: false).snapshots().map((
+      snapshot,
+    ) {
       return snapshot.docs.map((doc) {
         return Trip.fromFirestore(doc.id, doc.data());
       }).toList();
@@ -149,7 +149,9 @@ class TripService {
   }) async {
     final uid = currentUserId;
     if (uid == null || uid.isEmpty) {
-      throw const TripServiceException('You must be signed in to create a trip.');
+      throw const TripServiceException(
+        'You must be signed in to create a trip.',
+      );
     }
 
     final trimmedName = name.trim();
@@ -157,7 +159,9 @@ class TripService {
       throw const TripServiceException('Trip name cannot be empty.');
     }
     if (trimmedName.length > 100) {
-      throw const TripServiceException('Trip name cannot exceed 100 characters.');
+      throw const TripServiceException(
+        'Trip name cannot exceed 100 characters.',
+      );
     }
 
     final trimmedDestination = destination.trim();
@@ -165,7 +169,9 @@ class TripService {
       throw const TripServiceException('Destination cannot be empty.');
     }
     if (trimmedDestination.length > 100) {
-      throw const TripServiceException('Destination cannot exceed 100 characters.');
+      throw const TripServiceException(
+        'Destination cannot exceed 100 characters.',
+      );
     }
 
     if (endDate.isBefore(startDate)) {
@@ -197,7 +203,8 @@ class TripService {
     final now = DateTime.now();
 
     if (testTrips != null) {
-      final newId = 'trip_${DateTime.now().millisecondsSinceEpoch}_${(testTrips![uid]?.length ?? 0) + 1}';
+      final newId =
+          'trip_${DateTime.now().millisecondsSinceEpoch}_${(testTrips![uid]?.length ?? 0) + 1}';
       final newTrip = Trip(
         id: newId,
         userId: uid,
@@ -261,7 +268,9 @@ class TripService {
   }) async {
     final uid = currentUserId;
     if (uid == null || uid.isEmpty) {
-      throw const TripServiceException('You must be signed in to update a trip.');
+      throw const TripServiceException(
+        'You must be signed in to update a trip.',
+      );
     }
 
     if (name != null) {
@@ -269,7 +278,9 @@ class TripService {
         throw const TripServiceException('Trip name cannot be empty.');
       }
       if (name.trim().length > 100) {
-        throw const TripServiceException('Trip name cannot exceed 100 characters.');
+        throw const TripServiceException(
+          'Trip name cannot exceed 100 characters.',
+        );
       }
     }
 
@@ -278,7 +289,9 @@ class TripService {
         throw const TripServiceException('Destination cannot be empty.');
       }
       if (destination.trim().length > 100) {
-        throw const TripServiceException('Destination cannot exceed 100 characters.');
+        throw const TripServiceException(
+          'Destination cannot exceed 100 characters.',
+        );
       }
     }
 
@@ -304,7 +317,9 @@ class TripService {
       final newStart = startDate ?? existing.startDate;
       final newEnd = endDate ?? existing.endDate;
       if (newEnd.isBefore(newStart)) {
-        throw const TripServiceException('End date cannot be before start date.');
+        throw const TripServiceException(
+          'End date cannot be before start date.',
+        );
       }
 
       userTrips[index] = existing.copyWith(
@@ -339,7 +354,9 @@ class TripService {
       final newStart = startDate ?? existingTrip.startDate;
       final newEnd = endDate ?? existingTrip.endDate;
       if (newEnd.isBefore(newStart)) {
-        throw const TripServiceException('End date cannot be before start date.');
+        throw const TripServiceException(
+          'End date cannot be before start date.',
+        );
       }
 
       final updates = <String, dynamic>{
@@ -347,7 +364,9 @@ class TripService {
       };
       if (name != null) updates['name'] = name.trim();
       if (destination != null) updates['destination'] = destination.trim();
-      if (startDate != null) updates['startDate'] = Timestamp.fromDate(startDate);
+      if (startDate != null) {
+        updates['startDate'] = Timestamp.fromDate(startDate);
+      }
       if (endDate != null) updates['endDate'] = Timestamp.fromDate(endDate);
       if (attractionIds != null) updates['attractionIds'] = attractionIds;
       if (clearBudget) {
@@ -357,7 +376,9 @@ class TripService {
       }
       if (travelerCount != null) updates['travelerCount'] = travelerCount;
       if (dayItinerary != null) {
-        updates['dayItinerary'] = dayItinerary.map((k, v) => MapEntry(k.toString(), v));
+        updates['dayItinerary'] = dayItinerary.map(
+          (k, v) => MapEntry(k.toString(), v),
+        );
       }
 
       await docRef.update(updates);
@@ -371,7 +392,9 @@ class TripService {
   Future<void> deleteTrip(String tripId) async {
     final uid = currentUserId;
     if (uid == null || uid.isEmpty) {
-      throw const TripServiceException('You must be signed in to delete trips.');
+      throw const TripServiceException(
+        'You must be signed in to delete trips.',
+      );
     }
 
     if (testTrips != null) {
@@ -403,7 +426,9 @@ class TripService {
   }) async {
     final uid = currentUserId;
     if (uid == null || uid.isEmpty) {
-      throw const TripServiceException('You must be signed in to modify a trip.');
+      throw const TripServiceException(
+        'You must be signed in to modify a trip.',
+      );
     }
 
     final cleanAttractionId = attractionId.trim();
@@ -421,8 +446,9 @@ class TripService {
       if (trip.attractionIds.contains(cleanAttractionId)) {
         throw const TripServiceException('Already added to this trip.');
       }
-      final updatedList = List<String>.from(trip.attractionIds)..add(cleanAttractionId);
-      
+      final updatedList = List<String>.from(trip.attractionIds)
+        ..add(cleanAttractionId);
+
       // Also sync dayItinerary if present: place on Day 1
       final updatedDays = Map<int, List<String>>.from(
         trip.dayItinerary.map((k, v) => MapEntry(k, List<String>.from(v))),
@@ -466,7 +492,9 @@ class TripService {
           trip.dayItinerary.map((k, v) => MapEntry(k, List<String>.from(v))),
         );
         updatedDays.putIfAbsent(1, () => <String>[]).add(cleanAttractionId);
-        updates['dayItinerary'] = updatedDays.map((k, v) => MapEntry(k.toString(), v));
+        updates['dayItinerary'] = updatedDays.map(
+          (k, v) => MapEntry(k.toString(), v),
+        );
       }
 
       await docRef.update(updates);
@@ -483,7 +511,9 @@ class TripService {
   }) async {
     final uid = currentUserId;
     if (uid == null || uid.isEmpty) {
-      throw const TripServiceException('You must be signed in to modify a trip.');
+      throw const TripServiceException(
+        'You must be signed in to modify a trip.',
+      );
     }
 
     final cleanAttractionId = attractionId.trim();
@@ -495,8 +525,9 @@ class TripService {
         throw const TripServiceException('Trip not found.');
       }
       final trip = userTrips[index];
-      final updatedList = List<String>.from(trip.attractionIds)..remove(cleanAttractionId);
-      
+      final updatedList = List<String>.from(trip.attractionIds)
+        ..remove(cleanAttractionId);
+
       // Also clean from dayItinerary
       final updatedDays = Map<int, List<String>>.from(
         trip.dayItinerary.map((k, v) => MapEntry(k, List<String>.from(v))),
@@ -535,7 +566,9 @@ class TripService {
           for (final dayList in updatedDays.values) {
             dayList.remove(cleanAttractionId);
           }
-          updates['dayItinerary'] = updatedDays.map((k, v) => MapEntry(k.toString(), v));
+          updates['dayItinerary'] = updatedDays.map(
+            (k, v) => MapEntry(k.toString(), v),
+          );
         }
       }
 
@@ -553,7 +586,9 @@ class TripService {
   }) async {
     final uid = currentUserId;
     if (uid == null || uid.isEmpty) {
-      throw const TripServiceException('You must be signed in to modify a trip.');
+      throw const TripServiceException(
+        'You must be signed in to modify a trip.',
+      );
     }
 
     if (testTrips != null) {
@@ -594,7 +629,9 @@ class TripService {
   }) async {
     final uid = currentUserId;
     if (uid == null || uid.isEmpty) {
-      throw const TripServiceException('You must be signed in to modify a trip.');
+      throw const TripServiceException(
+        'You must be signed in to modify a trip.',
+      );
     }
 
     // Automatically derive flattened unique attraction IDs to keep attractionIds in sync
@@ -629,7 +666,9 @@ class TripService {
 
     try {
       final docRef = collection.doc(tripId);
-      final rawDayItinerary = dayItinerary.map((k, v) => MapEntry(k.toString(), v));
+      final rawDayItinerary = dayItinerary.map(
+        (k, v) => MapEntry(k.toString(), v),
+      );
       await docRef.update({
         'dayItinerary': rawDayItinerary,
         'attractionIds': derivedAttractionIds,
@@ -651,7 +690,9 @@ class TripService {
     if (trip == null) throw const TripServiceException('Trip not found.');
 
     final currentDays = Map<int, List<String>>.from(
-      trip.resolvedDayItinerary.map((k, v) => MapEntry(k, List<String>.from(v))),
+      trip.resolvedDayItinerary.map(
+        (k, v) => MapEntry(k, List<String>.from(v)),
+      ),
     );
 
     // Remove from existing days
@@ -678,12 +719,16 @@ class TripService {
     if (trip == null) throw const TripServiceException('Trip not found.');
 
     final currentDays = Map<int, List<String>>.from(
-      trip.resolvedDayItinerary.map((k, v) => MapEntry(k, List<String>.from(v))),
+      trip.resolvedDayItinerary.map(
+        (k, v) => MapEntry(k, List<String>.from(v)),
+      ),
     );
 
     currentDays.putIfAbsent(day, () => <String>[]);
     if (currentDays[day]!.contains(attractionId)) {
-      throw const TripServiceException('Attraction already scheduled for this day.');
+      throw const TripServiceException(
+        'Attraction already scheduled for this day.',
+      );
     }
     currentDays[day]!.add(attractionId);
 
@@ -700,7 +745,9 @@ class TripService {
     if (trip == null) throw const TripServiceException('Trip not found.');
 
     final currentDays = Map<int, List<String>>.from(
-      trip.resolvedDayItinerary.map((k, v) => MapEntry(k, List<String>.from(v))),
+      trip.resolvedDayItinerary.map(
+        (k, v) => MapEntry(k, List<String>.from(v)),
+      ),
     );
 
     if (currentDays.containsKey(day)) {

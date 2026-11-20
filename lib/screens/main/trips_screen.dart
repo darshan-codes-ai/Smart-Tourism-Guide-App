@@ -118,9 +118,7 @@ class _TripsScreenState extends State<TripsScreen> {
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting &&
                       !snapshot.hasData) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
+                    return const Center(child: CircularProgressIndicator());
                   }
 
                   if (snapshot.hasError) {
@@ -218,10 +216,8 @@ class _TripsScreenState extends State<TripsScreen> {
                             ),
                           );
                         },
-                        onEdit: () => TripFormSheet.show(
-                          context,
-                          initialTrip: trip,
-                        ),
+                        onEdit: () =>
+                            TripFormSheet.show(context, initialTrip: trip),
                         onDelete: () => _confirmDeleteTrip(context, trip),
                       );
                     },
@@ -235,7 +231,10 @@ class _TripsScreenState extends State<TripsScreen> {
     );
   }
 
-  static Future<void> _confirmDeleteTrip(BuildContext context, Trip trip) async {
+  static Future<void> _confirmDeleteTrip(
+    BuildContext context,
+    Trip trip,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -249,9 +248,7 @@ class _TripsScreenState extends State<TripsScreen> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Delete'),
           ),
@@ -264,9 +261,7 @@ class _TripsScreenState extends State<TripsScreen> {
         await TripService.instance.deleteTrip(trip.id);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Trip "${trip.name}" deleted.'),
-            ),
+            SnackBar(content: Text('Trip "${trip.name}" deleted.')),
           );
         }
       } catch (e) {
@@ -389,8 +384,11 @@ class _TripCard extends StatelessWidget {
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete_outline_rounded,
-                                size: 20, color: Colors.red.shade700),
+                            Icon(
+                              Icons.delete_outline_rounded,
+                              size: 20,
+                              color: Colors.red.shade700,
+                            ),
                             const SizedBox(width: 10),
                             Text(
                               'Delete',

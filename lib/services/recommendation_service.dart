@@ -22,13 +22,17 @@ class RecommendationService extends ChangeNotifier {
   }
 
   void toggleInterest(TravelInterest interest) {
-    final updated = Set<TravelInterest>.from(_currentPreference.selectedInterests);
+    final updated = Set<TravelInterest>.from(
+      _currentPreference.selectedInterests,
+    );
     if (updated.contains(interest)) {
       updated.remove(interest);
     } else {
       updated.add(interest);
     }
-    _currentPreference = _currentPreference.copyWith(selectedInterests: updated);
+    _currentPreference = _currentPreference.copyWith(
+      selectedInterests: updated,
+    );
     notifyListeners();
   }
 
@@ -65,7 +69,8 @@ class RecommendationService extends ChangeNotifier {
 
     for (final attraction in attractions) {
       // 1. Minimum rating constraint
-      if (preference.minRating > 0.0 && attraction.rating < preference.minRating) {
+      if (preference.minRating > 0.0 &&
+          attraction.rating < preference.minRating) {
         continue;
       }
 
@@ -74,17 +79,21 @@ class RecommendationService extends ChangeNotifier {
         final destQuery = preference.selectedDestination.trim().toLowerCase();
         final matchesCountry = attraction.country.toLowerCase() == destQuery;
         final matchesCity = attraction.city.toLowerCase() == destQuery;
-        final matchesLocation = attraction.location.toLowerCase().contains(destQuery);
+        final matchesLocation = attraction.location.toLowerCase().contains(
+          destQuery,
+        );
         if (!matchesCountry && !matchesCity && !matchesLocation) {
           continue;
         }
       }
 
       // 3. Budget constraint
-      if (preference.budget == BudgetPreference.freeOnly && !isFree(attraction)) {
+      if (preference.budget == BudgetPreference.freeOnly &&
+          !isFree(attraction)) {
         continue;
       }
-      if (preference.budget == BudgetPreference.budgetFriendly && !isBudgetFriendly(attraction)) {
+      if (preference.budget == BudgetPreference.budgetFriendly &&
+          !isBudgetFriendly(attraction)) {
         continue;
       }
 
@@ -141,7 +150,8 @@ class RecommendationService extends ChangeNotifier {
 
         // Keyword match in name or description: +15 points
         final textToSearch =
-            '${attraction.name} ${attraction.description} ${attraction.category}'.toLowerCase();
+            '${attraction.name} ${attraction.description} ${attraction.category}'
+                .toLowerCase();
         final hasKeywordMatch = interest.keywords.any(
           (kw) => textToSearch.contains(kw),
         );
@@ -169,9 +179,11 @@ class RecommendationService extends ChangeNotifier {
       score += 15.0;
     } else {
       score += 25.0;
-      matchedTags.add(attraction.displayLocation.isNotEmpty
-          ? attraction.displayLocation
-          : preference.selectedDestination);
+      matchedTags.add(
+        attraction.displayLocation.isNotEmpty
+            ? attraction.displayLocation
+            : preference.selectedDestination,
+      );
     }
 
     // C. Rating Points (0 to 20 points)
@@ -186,7 +198,8 @@ class RecommendationService extends ChangeNotifier {
     score += popScore;
 
     // E. Saved Attractions Affinity (0 to 5 points)
-    final isSaved = savedAttractionIds?.contains(attraction.id) ?? attraction.isSaved;
+    final isSaved =
+        savedAttractionIds?.contains(attraction.id) ?? attraction.isSaved;
     if (isSaved) {
       score += 5.0;
       matchedTags.add('Saved Place');
@@ -244,7 +257,11 @@ class RecommendationService extends ChangeNotifier {
   /// Checks if the attraction entry fee indicates free admission.
   bool isFree(Attraction attraction) {
     final fee = attraction.entryFee.trim().toLowerCase();
-    return fee == 'free' || fee == '0' || fee == '€0' || fee == '\$0' || fee.contains('free');
+    return fee == 'free' ||
+        fee == '0' ||
+        fee == '€0' ||
+        fee == '\$0' ||
+        fee.contains('free');
   }
 
   /// Checks if entry fee is free or within budget (<= 30 in native units).
@@ -261,4 +278,3 @@ class RecommendationService extends ChangeNotifier {
     return attraction.entryFee.toLowerCase().contains('free');
   }
 }
-

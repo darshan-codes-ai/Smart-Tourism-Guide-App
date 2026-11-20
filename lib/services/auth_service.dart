@@ -150,9 +150,7 @@ class AuthService {
           'Failed to retrieve Google authentication token. Please try again.',
         );
       }
-      final credential = GoogleAuthProvider.credential(
-        idToken: idToken,
-      );
+      final credential = GoogleAuthProvider.credential(idToken: idToken);
       return await auth.signInWithCredential(credential);
     } on FirebaseAuthException catch (error) {
       throw AuthServiceException(_messageForAuthError(error));

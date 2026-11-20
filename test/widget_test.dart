@@ -22,9 +22,7 @@ void main() {
     // initialization or a previously authenticated app session.
     TripService.resetForTest();
     TripService.testCurrentUserId = 'widget-test-user';
-    TripService.testTrips = <String, List<Trip>>{
-      'widget-test-user': <Trip>[],
-    };
+    TripService.testTrips = <String, List<Trip>>{'widget-test-user': <Trip>[]};
   });
 
   tearDown(() {
@@ -34,9 +32,7 @@ void main() {
     SavedPlacesStore.instance.resetForTest();
   });
 
-  testWidgets('navigates Splash → Onboarding → Login screen', (
-    tester,
-  ) async {
+  testWidgets('navigates Splash → Onboarding → Login screen', (tester) async {
     await tester.pumpWidget(const TourMateApp());
     expect(find.text('TourMate'), findsOneWidget);
     expect(find.text('Discover. Explore. Experience.'), findsOneWidget);
@@ -60,46 +56,44 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Login'), findsOneWidget);
   });
 
-  testWidgets('navigates MainShell tabs (Home, Explore, Trips, Saved, Profile)', (
-    tester,
-  ) async {
-    // Exercise the compact bottom-navigation layout deterministically. The
-    // default test surface is wide enough to select NavigationRail instead.
-    await tester.binding.setSurfaceSize(const Size(390, 844));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+  testWidgets(
+    'navigates MainShell tabs (Home, Explore, Trips, Saved, Profile)',
+    (tester) async {
+      // Exercise the compact bottom-navigation layout deterministically. The
+      // default test surface is wide enough to select NavigationRail instead.
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light(),
-        home: const MainShell(),
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        MaterialApp(theme: AppTheme.light(), home: const MainShell()),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Where do you want to explore?'), findsOneWidget);
+      expect(find.text('Where do you want to explore?'), findsOneWidget);
 
-    // Scope taps to the navigation bar: the Explore page also has an "Explore"
-    // heading, so an unscoped text finder can become ambiguous after navigation.
-    Finder destination(String label) => find.descendant(
-          of: find.byType(NavigationBar),
-          matching: find.text(label),
-        );
+      // Scope taps to the navigation bar: the Explore page also has an "Explore"
+      // heading, so an unscoped text finder can become ambiguous after navigation.
+      Finder destination(String label) => find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text(label),
+      );
 
-    await tester.tap(destination('Explore'));
-    await tester.pumpAndSettle();
-    expect(find.text('Explore'), findsWidgets);
+      await tester.tap(destination('Explore'));
+      await tester.pumpAndSettle();
+      expect(find.text('Explore'), findsWidgets);
 
-    await tester.tap(destination('Trips'));
-    await tester.pumpAndSettle();
-    expect(find.text('No trips yet'), findsOneWidget);
+      await tester.tap(destination('Trips'));
+      await tester.pumpAndSettle();
+      expect(find.text('No trips yet'), findsOneWidget);
 
-    await tester.tap(destination('Saved'));
-    await tester.pumpAndSettle();
-    expect(find.text('My Saved Places'), findsOneWidget);
+      await tester.tap(destination('Saved'));
+      await tester.pumpAndSettle();
+      expect(find.text('My Saved Places'), findsOneWidget);
 
-    await tester.tap(destination('Profile'));
-    await tester.pumpAndSettle();
-    expect(find.text('Profile'), findsWidgets);
-    expect(find.text('TourMate'), findsWidgets);
-  });
+      await tester.tap(destination('Profile'));
+      await tester.pumpAndSettle();
+      expect(find.text('Profile'), findsWidgets);
+      expect(find.text('TourMate'), findsWidgets);
+    },
+  );
 }

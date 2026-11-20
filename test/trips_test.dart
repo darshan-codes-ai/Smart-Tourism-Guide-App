@@ -104,7 +104,8 @@ void main() {
     city: 'Tokyo',
     country: 'Japan',
     location: 'Minato City, Tokyo',
-    description: 'Communications and observation tower in the Shiba-koen district.',
+    description:
+        'Communications and observation tower in the Shiba-koen district.',
     imageUrl: 'https://images.unsplash.com/photo-1536098561742-ca998e48cbcc',
     rating: 4.5,
     reviewCount: 6500,
@@ -127,7 +128,9 @@ void main() {
       'user_darsh_1': <Trip>[sampleTrip],
     };
     TripService.testCurrentUserId = 'user_darsh_1';
-    AttractionService.testAttractions = Map<String, Attraction>.from(allTestAttractions);
+    AttractionService.testAttractions = Map<String, Attraction>.from(
+      allTestAttractions,
+    );
     AttractionService.testGetAttraction = (id) async => allTestAttractions[id];
   });
 
@@ -213,11 +216,13 @@ void main() {
           startDate: DateTime(2026, 12, 1),
           endDate: DateTime(2026, 12, 5),
         ),
-        throwsA(isA<TripServiceException>().having(
-          (e) => e.message,
-          'message',
-          contains('name cannot be empty'),
-        )),
+        throwsA(
+          isA<TripServiceException>().having(
+            (e) => e.message,
+            'message',
+            contains('name cannot be empty'),
+          ),
+        ),
       );
     });
 
@@ -229,11 +234,13 @@ void main() {
           startDate: DateTime(2026, 12, 1),
           endDate: DateTime(2026, 12, 5),
         ),
-        throwsA(isA<TripServiceException>().having(
-          (e) => e.message,
-          'message',
-          contains('Destination cannot be empty'),
-        )),
+        throwsA(
+          isA<TripServiceException>().having(
+            (e) => e.message,
+            'message',
+            contains('Destination cannot be empty'),
+          ),
+        ),
       );
     });
 
@@ -246,11 +253,13 @@ void main() {
           startDate: DateTime(2026, 12, 1),
           endDate: DateTime(2026, 12, 5),
         ),
-        throwsA(isA<TripServiceException>().having(
-          (e) => e.message,
-          'message',
-          contains('cannot exceed 100 characters'),
-        )),
+        throwsA(
+          isA<TripServiceException>().having(
+            (e) => e.message,
+            'message',
+            contains('cannot exceed 100 characters'),
+          ),
+        ),
       );
     });
 
@@ -263,11 +272,13 @@ void main() {
           startDate: DateTime(2026, 12, 1),
           endDate: DateTime(2026, 12, 5),
         ),
-        throwsA(isA<TripServiceException>().having(
-          (e) => e.message,
-          'message',
-          contains('cannot exceed 100 characters'),
-        )),
+        throwsA(
+          isA<TripServiceException>().having(
+            (e) => e.message,
+            'message',
+            contains('cannot exceed 100 characters'),
+          ),
+        ),
       );
     });
 
@@ -279,11 +290,13 @@ void main() {
           startDate: DateTime(2026, 12, 10),
           endDate: DateTime(2026, 12, 5),
         ),
-        throwsA(isA<TripServiceException>().having(
-          (e) => e.message,
-          'message',
-          contains('End date cannot be before start date'),
-        )),
+        throwsA(
+          isA<TripServiceException>().having(
+            (e) => e.message,
+            'message',
+            contains('End date cannot be before start date'),
+          ),
+        ),
       );
     });
   });
@@ -307,14 +320,17 @@ void main() {
       expect(fetched!.name, 'Rome Holiday');
     });
 
-    test('11. Get trip retrieves existing trip and null for unknown ID', () async {
-      final fetched = await TripService.instance.getTrip('trip_101');
-      expect(fetched, isNotNull);
-      expect(fetched!.name, 'Paris Adventure');
+    test(
+      '11. Get trip retrieves existing trip and null for unknown ID',
+      () async {
+        final fetched = await TripService.instance.getTrip('trip_101');
+        expect(fetched, isNotNull);
+        expect(fetched!.name, 'Paris Adventure');
 
-      final notFound = await TripService.instance.getTrip('non_existent_id');
-      expect(notFound, isNull);
-    });
+        final notFound = await TripService.instance.getTrip('non_existent_id');
+        expect(notFound, isNull);
+      },
+    );
 
     test('12. Update trip modifies details and timestamps', () async {
       await TripService.instance.updateTrip(
@@ -361,24 +377,29 @@ void main() {
           tripId: 'trip_101',
           attractionId: 'eiffel_tower',
         ),
-        throwsA(isA<TripServiceException>().having(
-          (e) => e.message,
-          'message',
-          'Already added to this trip.',
-        )),
+        throwsA(
+          isA<TripServiceException>().having(
+            (e) => e.message,
+            'message',
+            'Already added to this trip.',
+          ),
+        ),
       );
     });
 
-    test('16. Remove attraction removes specified ID while keeping others', () async {
-      await TripService.instance.removeAttractionFromTrip(
-        tripId: 'trip_101',
-        attractionId: 'louvre_museum',
-      );
+    test(
+      '16. Remove attraction removes specified ID while keeping others',
+      () async {
+        await TripService.instance.removeAttractionFromTrip(
+          tripId: 'trip_101',
+          attractionId: 'louvre_museum',
+        );
 
-      final trip = await TripService.instance.getTrip('trip_101');
-      expect(trip!.attractionIds, ['eiffel_tower']);
-      expect(trip.attractionCount, 1);
-    });
+        final trip = await TripService.instance.getTrip('trip_101');
+        expect(trip!.attractionIds, ['eiffel_tower']);
+        expect(trip.attractionCount, 1);
+      },
+    );
 
     test('17. Reorder attractions updates attraction order', () async {
       await TripService.instance.reorderAttractions(
@@ -392,27 +413,36 @@ void main() {
   });
 
   group('Authentication & User Scoping Tests', () {
-    test('18. Unauthenticated trip access throws TripServiceException', () async {
-      TripService.testCurrentUserId = null;
+    test(
+      '18. Unauthenticated trip access throws TripServiceException',
+      () async {
+        TripService.testCurrentUserId = null;
 
-      expect(
-        () => TripService.instance.createTrip(
-          name: 'Unauthorized Trip',
-          destination: 'Anywhere',
-          startDate: DateTime.now(),
-          endDate: DateTime.now().add(const Duration(days: 2)),
-        ),
-        throwsA(isA<TripServiceException>().having(
-          (e) => e.message,
-          'message',
-          contains('must be signed in'),
-        )),
-      );
-    });
+        expect(
+          () => TripService.instance.createTrip(
+            name: 'Unauthorized Trip',
+            destination: 'Anywhere',
+            startDate: DateTime.now(),
+            endDate: DateTime.now().add(const Duration(days: 2)),
+          ),
+          throwsA(
+            isA<TripServiceException>().having(
+              (e) => e.message,
+              'message',
+              contains('must be signed in'),
+            ),
+          ),
+        );
+      },
+    );
 
     test('19. Trip ownership and user isolation', () async {
       TripService.testTrips!['user_other_2'] = [
-        sampleTrip.copyWith(id: 'trip_other', userId: 'user_other_2', name: 'Other User Trip'),
+        sampleTrip.copyWith(
+          id: 'trip_other',
+          userId: 'user_other_2',
+          name: 'Other User Trip',
+        ),
       ];
 
       // Current user is user_darsh_1
@@ -465,47 +495,47 @@ void main() {
       expect(find.text('New Trip'), findsOneWidget);
     });
 
-    testWidgets('22. Trip details / itinerary UI displays attractions and actions', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: TripDetailsScreen(
-            tripId: sampleTrip.id,
-            initialTrip: sampleTrip,
+    testWidgets(
+      '22. Trip details / itinerary UI displays attractions and actions',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light(),
+            home: TripDetailsScreen(
+              tripId: sampleTrip.id,
+              initialTrip: sampleTrip,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Paris Adventure'), findsOneWidget);
-      expect(find.text('Paris, France'), findsOneWidget);
-      expect(find.text('Your Attractions'), findsOneWidget);
-      expect(find.text('2'), findsWidgets);
-      expect(find.text('Eiffel Tower'), findsOneWidget);
-      expect(find.byIcon(Icons.remove_circle_outline_rounded), findsWidgets);
-      expect(find.byIcon(Icons.drag_indicator_rounded), findsWidgets);
-    });
+        expect(find.text('Paris Adventure'), findsOneWidget);
+        expect(find.text('Paris, France'), findsOneWidget);
+        expect(find.text('Your Attractions'), findsOneWidget);
+        expect(find.text('2'), findsWidgets);
+        expect(find.text('Eiffel Tower'), findsOneWidget);
+        expect(find.byIcon(Icons.remove_circle_outline_rounded), findsWidgets);
+        expect(find.byIcon(Icons.drag_indicator_rounded), findsWidgets);
+      },
+    );
 
-    testWidgets('23. AddToTripSheet displays user trips and already added status', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: Scaffold(
-            body: AddToTripSheet(attraction: sampleAttraction),
+    testWidgets(
+      '23. AddToTripSheet displays user trips and already added status',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light(),
+            home: Scaffold(body: AddToTripSheet(attraction: sampleAttraction)),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Add to Trip'), findsOneWidget);
-      expect(find.text('Eiffel Tower'), findsOneWidget);
-      expect(find.text('Paris Adventure'), findsOneWidget);
-      expect(find.text('Added'), findsOneWidget);
-    });
+        expect(find.text('Add to Trip'), findsOneWidget);
+        expect(find.text('Eiffel Tower'), findsOneWidget);
+        expect(find.text('Paris Adventure'), findsOneWidget);
+        expect(find.text('Added'), findsOneWidget);
+      },
+    );
   });
 
   group('Smart Trip Model & Validation Tests', () {
@@ -552,7 +582,10 @@ void main() {
         'attractionIds': ['eiffel_tower', 'louvre_museum'],
         'budget': 1500.0,
         'travelerCount': 3,
-        'dayItinerary': {'1': ['eiffel_tower'], '2': ['louvre_museum']},
+        'dayItinerary': {
+          '1': ['eiffel_tower'],
+          '2': ['louvre_museum'],
+        },
         'createdAt': Timestamp.fromDate(DateTime(2026, 10, 1)),
         'updatedAt': Timestamp.fromDate(DateTime(2026, 10, 1)),
       };
@@ -610,11 +643,13 @@ void main() {
           endDate: testDateEnd,
           budget: -100,
         ),
-        throwsA(isA<TripServiceException>().having(
-          (e) => e.message,
-          'message',
-          contains('Budget cannot be negative'),
-        )),
+        throwsA(
+          isA<TripServiceException>().having(
+            (e) => e.message,
+            'message',
+            contains('Budget cannot be negative'),
+          ),
+        ),
       );
 
       // Traveler count < 1 on create
@@ -626,24 +661,26 @@ void main() {
           endDate: testDateEnd,
           travelerCount: 0,
         ),
-        throwsA(isA<TripServiceException>().having(
-          (e) => e.message,
-          'message',
-          contains('Traveler count must be at least 1'),
-        )),
+        throwsA(
+          isA<TripServiceException>().having(
+            (e) => e.message,
+            'message',
+            contains('Traveler count must be at least 1'),
+          ),
+        ),
       );
 
       // Negative budget on update
       expect(
-        () => TripService.instance.updateTrip(
-          tripId: sampleTrip.id,
-          budget: -50,
+        () =>
+            TripService.instance.updateTrip(tripId: sampleTrip.id, budget: -50),
+        throwsA(
+          isA<TripServiceException>().having(
+            (e) => e.message,
+            'message',
+            contains('Budget cannot be negative'),
+          ),
         ),
-        throwsA(isA<TripServiceException>().having(
-          (e) => e.message,
-          'message',
-          contains('Budget cannot be negative'),
-        )),
       );
 
       // Traveler count < 1 on update
@@ -652,11 +689,13 @@ void main() {
           tripId: sampleTrip.id,
           travelerCount: 0,
         ),
-        throwsA(isA<TripServiceException>().having(
-          (e) => e.message,
-          'message',
-          contains('Traveler count must be at least 1'),
-        )),
+        throwsA(
+          isA<TripServiceException>().having(
+            (e) => e.message,
+            'message',
+            contains('Traveler count must be at least 1'),
+          ),
+        ),
       );
     });
   });
@@ -714,7 +753,11 @@ void main() {
       final seenIds = <String>{};
       for (final dayAttractions in itinerary.daySchedule.values) {
         for (final attr in dayAttractions) {
-          expect(seenIds.contains(attr.id), isFalse, reason: 'Duplicate attraction in itinerary');
+          expect(
+            seenIds.contains(attr.id),
+            isFalse,
+            reason: 'Duplicate attraction in itinerary',
+          );
           seenIds.add(attr.id);
         }
       }
@@ -748,7 +791,10 @@ void main() {
         attractionsPerDay: 1,
       );
       expect(parisItinerary.allAttractionIds.length, 1);
-      expect(['eiffel_tower', 'louvre_museum'], contains(parisItinerary.allAttractionIds.first));
+      expect([
+        'eiffel_tower',
+        'louvre_museum',
+      ], contains(parisItinerary.allAttractionIds.first));
     });
 
     test('30. ItineraryService handles missing coordinates and incomplete attraction data safely', () {
@@ -807,7 +853,10 @@ void main() {
       expect(updated, isNotNull);
       expect(updated!.dayItinerary[1], ['eiffel_tower']);
       expect(updated.dayItinerary[2], ['notre_dame', 'arc_de_triomphe']);
-      expect(updated.attractionIds, containsAll(['eiffel_tower', 'notre_dame', 'arc_de_triomphe']));
+      expect(
+        updated.attractionIds,
+        containsAll(['eiffel_tower', 'notre_dame', 'arc_de_triomphe']),
+      );
       expect(updated.attractionCount, 3);
     });
 
@@ -855,159 +904,184 @@ void main() {
   });
 
   group('Smart Trip UI Widget Tests', () {
-    testWidgets('33. Trip details UI displays traveler count and budget badges', (tester) async {
-      final tripWithBudget = sampleTrip.copyWith(
-        budget: 1500.0,
-        travelerCount: 3,
-      );
-      TripService.testTrips = <String, List<Trip>>{
-        'user_darsh_1': <Trip>[tripWithBudget],
-      };
+    testWidgets(
+      '33. Trip details UI displays traveler count and budget badges',
+      (tester) async {
+        final tripWithBudget = sampleTrip.copyWith(
+          budget: 1500.0,
+          travelerCount: 3,
+        );
+        TripService.testTrips = <String, List<Trip>>{
+          'user_darsh_1': <Trip>[tripWithBudget],
+        };
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: TripDetailsScreen(
-            tripId: tripWithBudget.id,
-            initialTrip: tripWithBudget,
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light(),
+            home: TripDetailsScreen(
+              tripId: tripWithBudget.id,
+              initialTrip: tripWithBudget,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('3 travellers'), findsOneWidget);
-      expect(find.text('💰 \$1500'), findsOneWidget);
-      expect(find.text('5 days'), findsOneWidget);
-    });
+        expect(find.text('3 travellers'), findsOneWidget);
+        expect(find.text('💰 \$1500'), findsOneWidget);
+        expect(find.text('5 days'), findsOneWidget);
+      },
+    );
 
-    testWidgets('34. Trip details UI Day-by-Day filter chips filter displayed attractions', (tester) async {
-      final multiDayTrip = sampleTrip.copyWith(
-        dayItinerary: const {
-          1: ['eiffel_tower'],
-          2: ['louvre_museum'],
-        },
-      );
-      TripService.testTrips = <String, List<Trip>>{
-        'user_darsh_1': <Trip>[multiDayTrip],
-      };
+    testWidgets(
+      '34. Trip details UI Day-by-Day filter chips filter displayed attractions',
+      (tester) async {
+        final multiDayTrip = sampleTrip.copyWith(
+          dayItinerary: const {
+            1: ['eiffel_tower'],
+            2: ['louvre_museum'],
+          },
+        );
+        TripService.testTrips = <String, List<Trip>>{
+          'user_darsh_1': <Trip>[multiDayTrip],
+        };
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: TripDetailsScreen(
-            tripId: multiDayTrip.id,
-            initialTrip: multiDayTrip,
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light(),
+            home: TripDetailsScreen(
+              tripId: multiDayTrip.id,
+              initialTrip: multiDayTrip,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // Check day filter chips exist
-      expect(find.text('All Days'), findsOneWidget);
-      expect(find.text('Day 1 (1)'), findsOneWidget);
-      expect(find.text('Day 2 (1)'), findsOneWidget);
+        // Check day filter chips exist
+        expect(find.text('All Days'), findsOneWidget);
+        expect(find.text('Day 1 (1)'), findsOneWidget);
+        expect(find.text('Day 2 (1)'), findsOneWidget);
 
-      // Both attractions visible initially under 'All Days'
-      expect(find.text('Eiffel Tower'), findsOneWidget);
-      expect(find.text('Louvre Museum'), findsOneWidget);
+        // Both attractions visible initially under 'All Days'
+        expect(find.text('Eiffel Tower'), findsOneWidget);
+        expect(find.text('Louvre Museum'), findsOneWidget);
 
-      // Tap 'Day 1 (1)' chip
-      await tester.tap(find.text('Day 1 (1)'));
-      await tester.pumpAndSettle();
+        // Tap 'Day 1 (1)' chip
+        await tester.tap(find.text('Day 1 (1)'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Eiffel Tower'), findsOneWidget);
-      expect(find.text('Louvre Museum'), findsNothing);
+        expect(find.text('Eiffel Tower'), findsOneWidget);
+        expect(find.text('Louvre Museum'), findsNothing);
 
-      // Tap 'Day 2 (1)' chip
-      await tester.tap(find.text('Day 2 (1)'));
-      await tester.pumpAndSettle();
+        // Tap 'Day 2 (1)' chip
+        await tester.tap(find.text('Day 2 (1)'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Louvre Museum'), findsOneWidget);
-      expect(find.text('Eiffel Tower'), findsNothing);
+        expect(find.text('Louvre Museum'), findsOneWidget);
+        expect(find.text('Eiffel Tower'), findsNothing);
 
-      // Tap back to 'All Days'
-      await tester.tap(find.text('All Days'));
-      await tester.pumpAndSettle();
+        // Tap back to 'All Days'
+        await tester.tap(find.text('All Days'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Eiffel Tower'), findsOneWidget);
-      expect(find.text('Louvre Museum'), findsOneWidget);
-    });
+        expect(find.text('Eiffel Tower'), findsOneWidget);
+        expect(find.text('Louvre Museum'), findsOneWidget);
+      },
+    );
 
-    testWidgets('35. Trip details UI opens Smart Itinerary modal and applies generated schedule', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: TripDetailsScreen(
-            tripId: sampleTrip.id,
-            initialTrip: sampleTrip,
+    testWidgets(
+      '35. Trip details UI opens Smart Itinerary modal and applies generated schedule',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light(),
+            home: TripDetailsScreen(
+              tripId: sampleTrip.id,
+              initialTrip: sampleTrip,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // Open Smart Itinerary modal from AppBar
-      final smartButton = find.byKey(const Key('trip_details_generate_itinerary_appbar_button'));
-      expect(smartButton, findsOneWidget);
-      await tester.tap(smartButton);
-      await tester.pumpAndSettle();
+        // Open Smart Itinerary modal from AppBar
+        final smartButton = find.byKey(
+          const Key('trip_details_generate_itinerary_appbar_button'),
+        );
+        expect(smartButton, findsOneWidget);
+        await tester.tap(smartButton);
+        await tester.pumpAndSettle();
 
-      expect(find.text('Smart Itinerary Generator'), findsOneWidget);
-      expect(find.text('Relaxed (2)'), findsOneWidget);
-      expect(find.text('Standard (3)'), findsOneWidget);
+        expect(find.text('Smart Itinerary Generator'), findsOneWidget);
+        expect(find.text('Relaxed (2)'), findsOneWidget);
+        expect(find.text('Standard (3)'), findsOneWidget);
 
-      // Apply generated itinerary
-      final applyButton = find.byKey(const Key('confirm_generate_itinerary_button'));
-      expect(applyButton, findsOneWidget);
-      await tester.tap(applyButton);
-      await tester.pumpAndSettle();
+        // Apply generated itinerary
+        final applyButton = find.byKey(
+          const Key('confirm_generate_itinerary_button'),
+        );
+        expect(applyButton, findsOneWidget);
+        await tester.tap(applyButton);
+        await tester.pumpAndSettle();
 
-      // Modal closed and snackbar or updated state shown
-      expect(find.text('Smart Itinerary Generator'), findsNothing);
-    });
+        // Modal closed and snackbar or updated state shown
+        expect(find.text('Smart Itinerary Generator'), findsNothing);
+      },
+    );
 
-    testWidgets('36. TripFormSheet supports budget, traveler count, and Smart Itinerary toggle', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: const Scaffold(
-            body: TripFormSheet(),
+    testWidgets(
+      '36. TripFormSheet supports budget, traveler count, and Smart Itinerary toggle',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light(),
+            home: const Scaffold(body: TripFormSheet()),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Create New Trip'), findsOneWidget);
-      expect(find.text('Budget (optional)'), findsOneWidget);
-      expect(find.text('Traveller'), findsOneWidget);
-      expect(find.text('1'), findsOneWidget);
+        expect(find.text('Create New Trip'), findsOneWidget);
+        expect(find.text('Budget (optional)'), findsOneWidget);
+        expect(find.text('Traveller'), findsOneWidget);
+        expect(find.text('1'), findsOneWidget);
 
-      // Tap increment traveler
-      await tester.tap(find.byIcon(Icons.add));
-      await tester.pumpAndSettle();
-      expect(find.text('2'), findsOneWidget);
-      expect(find.text('Travellers'), findsOneWidget);
+        // Tap increment traveler
+        await tester.tap(find.byIcon(Icons.add));
+        await tester.pumpAndSettle();
+        expect(find.text('2'), findsOneWidget);
+        expect(find.text('Travellers'), findsOneWidget);
 
-      // Check Smart Itinerary Switch
-      final itinerarySwitch = find.byKey(const Key('trip_form_auto_itinerary_switch'));
-      expect(itinerarySwitch, findsOneWidget);
-      await tester.tap(itinerarySwitch);
-      await tester.pumpAndSettle();
+        // Check Smart Itinerary Switch
+        final itinerarySwitch = find.byKey(
+          const Key('trip_form_auto_itinerary_switch'),
+        );
+        expect(itinerarySwitch, findsOneWidget);
+        await tester.tap(itinerarySwitch);
+        await tester.pumpAndSettle();
 
-      // Fill in fields and create
-      await tester.enterText(find.widgetWithText(TextFormField, 'Trip Name *'), 'Rome Getaway');
-      await tester.enterText(find.widgetWithText(TextFormField, 'Destination *'), 'Rome, Italy');
-      await tester.enterText(find.widgetWithText(TextFormField, 'Budget (optional)'), '2000');
-      await tester.pumpAndSettle();
+        // Fill in fields and create
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Trip Name *'),
+          'Rome Getaway',
+        );
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Destination *'),
+          'Rome, Italy',
+        );
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Budget (optional)'),
+          '2000',
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Create Trip'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Create Trip'));
+        await tester.pumpAndSettle();
 
-      // Check that created trip has budget and travelerCount
-      final trips = TripService.testTrips!['user_darsh_1'] ?? [];
-      final created = trips.firstWhere((t) => t.name == 'Rome Getaway');
-      expect(created.destination, 'Rome, Italy');
-      expect(created.budget, 2000.0);
-      expect(created.travelerCount, 2);
-    });
+        // Check that created trip has budget and travelerCount
+        final trips = TripService.testTrips!['user_darsh_1'] ?? [];
+        final created = trips.firstWhere((t) => t.name == 'Rome Getaway');
+        expect(created.destination, 'Rome, Italy');
+        expect(created.budget, 2000.0);
+        expect(created.travelerCount, 2);
+      },
+    );
   });
 }

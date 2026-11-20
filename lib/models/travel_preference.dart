@@ -263,4 +263,3 @@ class RecommendedAttraction {
   /// Highlights explaining the match (e.g. ['History & Culture', '4.8★ Rated', 'Free Entry']).
   final List<String> matchedTags;
 }
-

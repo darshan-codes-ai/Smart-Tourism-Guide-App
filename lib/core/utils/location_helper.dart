@@ -17,7 +17,8 @@ class LocationHelper {
     final dLat = _degreesToRadians(endLatitude - startLatitude);
     final dLon = _degreesToRadians(endLongitude - startLongitude);
 
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_degreesToRadians(startLatitude)) *
             math.cos(_degreesToRadians(endLatitude)) *
             math.sin(dLon / 2) *
@@ -64,4 +65,3 @@ class LocationHelper {
     return buffer.toString().split('').reversed.join();
   }
 }
-

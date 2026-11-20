@@ -29,8 +29,9 @@ class GeneratedItinerary {
   List<String> get allAttractionIds => allAttractions.map((a) => a.id).toList();
 
   /// Map of day number -> list of attraction IDs for direct persistence.
-  Map<int, List<String>> get dayItineraryIds =>
-      daySchedule.map((day, list) => MapEntry(day, list.map((a) => a.id).toList()));
+  Map<int, List<String>> get dayItineraryIds => daySchedule.map(
+    (day, list) => MapEntry(day, list.map((a) => a.id).toList()),
+  );
 }
 
 /// Service that deterministically generates day-by-day travel itineraries.
@@ -65,11 +66,14 @@ class ItineraryService {
     List<Attraction> candidates = [];
     if (!isGenericDest) {
       candidates = availableAttractions.where((a) {
-        final matchesCountry = a.country.toLowerCase().contains(destQuery) ||
+        final matchesCountry =
+            a.country.toLowerCase().contains(destQuery) ||
             destQuery.contains(a.country.toLowerCase());
-        final matchesCity = a.city.toLowerCase().contains(destQuery) ||
+        final matchesCity =
+            a.city.toLowerCase().contains(destQuery) ||
             destQuery.contains(a.city.toLowerCase());
-        final matchesLocation = a.location.toLowerCase().contains(destQuery) ||
+        final matchesLocation =
+            a.location.toLowerCase().contains(destQuery) ||
             destQuery.contains(a.location.toLowerCase());
         final matchesName = a.name.toLowerCase().contains(destQuery);
         return matchesCountry || matchesCity || matchesLocation || matchesName;
@@ -103,7 +107,9 @@ class ItineraryService {
 
         for (final interest in activeInterests) {
           // Category match
-          if (interest.categories.any((c) => c.toLowerCase() == categoryLower)) {
+          if (interest.categories.any(
+            (c) => c.toLowerCase() == categoryLower,
+          )) {
             score += 20.0;
           }
 
@@ -121,7 +127,10 @@ class ItineraryService {
       // Budget friendliness (0 to 10 pts)
       if (budget != null && budget > 0) {
         final feeLower = attraction.entryFee.toLowerCase();
-        if (feeLower.contains('free') || feeLower == '0' || feeLower == '€0' || feeLower == r'$0') {
+        if (feeLower.contains('free') ||
+            feeLower == '0' ||
+            feeLower == '€0' ||
+            feeLower == r'$0') {
           score += 10.0;
         } else {
           score += 5.0;
@@ -178,7 +187,9 @@ class ItineraryService {
         summaryBuffer.write(' tailored to $names');
       }
       if (usedFallback) {
-        summaryBuffer.write(' (featuring top global highlights as destination-specific matches were limited)');
+        summaryBuffer.write(
+          ' (featuring top global highlights as destination-specific matches were limited)',
+        );
       }
       summaryBuffer.write('.');
     }
@@ -194,12 +205,8 @@ class ItineraryService {
 }
 
 class _ScoredCandidate {
-  const _ScoredCandidate({
-    required this.attraction,
-    required this.score,
-  });
+  const _ScoredCandidate({required this.attraction, required this.score});
 
   final Attraction attraction;
   final double score;
 }
-

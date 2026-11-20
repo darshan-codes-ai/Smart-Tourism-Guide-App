@@ -17,10 +17,8 @@ class DummyData {
       id: 'eiffel-tower',
       name: 'Eiffel Tower',
       category: 'Historical',
-      description:
-          'The iconic wrought-iron lattice tower on the Champ de Mars in Paris, offering breathtaking panoramic views of the City of Light.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?auto=format&fit=crop&w=1200&q=80',
+      description: 'The iconic wrought-iron lattice tower on the Champ de Mars in Paris, offering breathtaking panoramic views of the City of Light.',
+      imageUrl: 'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?auto=format&fit=crop&w=1200&q=80',
       rating: 4.7,
       city: 'Paris',
       country: 'France',
@@ -42,10 +40,8 @@ class DummyData {
       id: 'louvre-museum',
       name: 'Louvre Museum',
       category: 'Historical',
-      description:
-          "The world's most-visited museum and historic monument in Paris, home to Leonardo da Vinci's Mona Lisa and Venus de Milo.",
-      imageUrl:
-          'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&w=1200&q=80',
+      description: "The world's most-visited museum and historic monument in Paris, home to Leonardo da Vinci's Mona Lisa and Venus de Milo.",
+      imageUrl: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&w=1200&q=80',
       rating: 4.8,
       city: 'Paris',
       country: 'France',
@@ -66,10 +62,8 @@ class DummyData {
       id: 'colosseum',
       name: 'Colosseum',
       category: 'Historical',
-      description:
-          'An ancient amphitheatre in the centre of Rome, the largest standing amphitheatre in the world despite its age.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=1200&q=80',
+      description: 'An ancient amphitheatre in the centre of Rome, the largest standing amphitheatre in the world despite its age.',
+      imageUrl: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=1200&q=80',
       rating: 4.8,
       city: 'Rome',
       country: 'Italy',
@@ -90,10 +84,8 @@ class DummyData {
       id: 'trevi-fountain',
       name: 'Trevi Fountain',
       category: 'Historical',
-      description:
-          'An 18th-century fountain in the Trevi district of Rome, renowned for its grand Baroque sculpture and coin-tossing tradition.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1525874684015-58379d421a52?auto=format&fit=crop&w=1200&q=80',
+      description: 'An 18th-century fountain in the Trevi district of Rome, renowned for its grand Baroque sculpture and coin-tossing tradition.',
+      imageUrl: 'https://images.unsplash.com/photo-1525874684015-58379d421a52?auto=format&fit=crop&w=1200&q=80',
       rating: 4.8,
       city: 'Rome',
       country: 'Italy',
@@ -115,10 +107,8 @@ class DummyData {
       id: 'tokyo-skytree',
       name: 'Tokyo Skytree',
       category: 'Adventure',
-      description:
-          'A broadcasting and observation tower in Sumida, Tokyo. It is the tallest structure in Japan with sensational 360-degree vistas.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=1200&q=80',
+      description: 'A broadcasting and observation tower in Sumida, Tokyo. It is the tallest structure in Japan with sensational 360-degree vistas.',
+      imageUrl: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=1200&q=80',
       rating: 4.6,
       city: 'Tokyo',
       country: 'Japan',
@@ -139,10 +129,8 @@ class DummyData {
       id: 'fushimi-inari',
       name: 'Fushimi Inari Shrine',
       category: 'Religious',
-      description:
-          'The head shrine of the kami Inari, famous for its thousands of vibrant vermilion torii gates winding up Mount Inari.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=80',
+      description: 'The head shrine of the kami Inari, famous for its thousands of vibrant vermilion torii gates winding up Mount Inari.',
+      imageUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=80',
       rating: 4.8,
       city: 'Kyoto',
       country: 'Japan',
@@ -163,10 +151,8 @@ class DummyData {
       id: 'tsukiji-market',
       name: 'Tsukiji Outer Market',
       category: 'Food',
-      description:
-          'A bustling marketplace packed with hundreds of food stalls, fresh sushi bars, knife shops, and gourmet street snacks.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1200&q=80',
+      description: 'A bustling marketplace packed with hundreds of food stalls, fresh sushi bars, knife shops, and gourmet street snacks.',
+      imageUrl: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1200&q=80',
       rating: 4.5,
       city: 'Tokyo',
       country: 'Japan',
@@ -187,10 +173,8 @@ class DummyData {
       id: 'statue-of-liberty',
       name: 'Statue of Liberty',
       category: 'Historical',
-      description:
-          'A colossal neoclassical sculpture on Liberty Island in New York Harbor, a universal symbol of freedom and democracy.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1508873696983-2df5703bc20d?auto=format&fit=crop&w=1200&q=80',
+      description: 'A colossal neoclassical sculpture on Liberty Island in New York Harbor, a universal symbol of freedom and democracy.',
+      imageUrl: 'https://images.unsplash.com/photo-1508873696983-2df5703bc20d?auto=format&fit=crop&w=1200&q=80',
       rating: 4.7,
       city: 'New York',
       country: 'United States',
@@ -211,10 +195,8 @@ class DummyData {
       id: 'central-park',
       name: 'Central Park',
       category: 'Nature',
-      description:
-          'An urban park in Manhattan between the Upper West and Upper East Sides, featuring rolling meadows, lakes, and walking paths.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1518391846015-55a9cc003b25?auto=format&fit=crop&w=1200&q=80',
+      description: 'An urban park in Manhattan between the Upper West and Upper East Sides, featuring rolling meadows, lakes, and walking paths.',
+      imageUrl: 'https://images.unsplash.com/photo-1518391846015-55a9cc003b25?auto=format&fit=crop&w=1200&q=80',
       rating: 4.8,
       city: 'New York',
       country: 'United States',
@@ -235,10 +217,8 @@ class DummyData {
       id: 'golden-gate-bridge',
       name: 'Golden Gate Bridge',
       category: 'Adventure',
-      description:
-          'A suspension bridge spanning the Golden Gate strait between San Francisco and Marin County, renowned worldwide for its Art Deco design.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=1200&q=80',
+      description: 'A suspension bridge spanning the Golden Gate strait between San Francisco and Marin County, renowned worldwide for its Art Deco design.',
+      imageUrl: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=1200&q=80',
       rating: 4.8,
       city: 'San Francisco',
       country: 'United States',
@@ -259,10 +239,8 @@ class DummyData {
       id: 'big-ben',
       name: 'Big Ben & Elizabeth Tower',
       category: 'Historical',
-      description:
-          'The iconic clock tower at the north end of the Houses of Parliament in Westminster, London, famous for its four-faced chiming clock.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1529655683826-aba9b3e77383?auto=format&fit=crop&w=1200&q=80',
+      description: 'The iconic clock tower at the north end of the Houses of Parliament in Westminster, London, famous for its four-faced chiming clock.',
+      imageUrl: 'https://images.unsplash.com/photo-1529655683826-aba9b3e77383?auto=format&fit=crop&w=1200&q=80',
       rating: 4.7,
       city: 'London',
       country: 'United Kingdom',
@@ -283,10 +261,8 @@ class DummyData {
       id: 'borough-market',
       name: 'Borough Market',
       category: 'Food',
-      description:
-          'One of the largest and oldest food markets in London, offering artisanal cheese, fresh bakery treats, and international street cuisines.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1533900298318-6b8da08a523e?auto=format&fit=crop&w=1200&q=80',
+      description: 'One of the largest and oldest food markets in London, offering artisanal cheese, fresh bakery treats, and international street cuisines.',
+      imageUrl: 'https://images.unsplash.com/photo-1533900298318-6b8da08a523e?auto=format&fit=crop&w=1200&q=80',
       rating: 4.6,
       city: 'London',
       country: 'United Kingdom',
@@ -307,10 +283,8 @@ class DummyData {
       id: 'burj-khalifa',
       name: 'Burj Khalifa',
       category: 'Adventure',
-      description:
-          "The world's tallest skyscraper in Dubai, with an observation deck on the 148th floor offering views across the Arabian Gulf.",
-      imageUrl:
-          'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1200&q=80',
+      description: "The world's tallest skyscraper in Dubai, with an observation deck on the 148th floor offering views across the Arabian Gulf.",
+      imageUrl: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1200&q=80',
       rating: 4.7,
       city: 'Dubai',
       country: 'United Arab Emirates',
@@ -331,10 +305,8 @@ class DummyData {
       id: 'sheikh-zayed-mosque',
       name: 'Sheikh Zayed Grand Mosque',
       category: 'Religious',
-      description:
-          'The largest mosque in the UAE, featuring 82 white marble domes, over 1,000 columns, gold-plated chandeliers, and hand-knotted carpet.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=1200&q=80',
+      description: 'The largest mosque in the UAE, featuring 82 white marble domes, over 1,000 columns, gold-plated chandeliers, and hand-knotted carpet.',
+      imageUrl: 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=1200&q=80',
       rating: 4.9,
       city: 'Abu Dhabi',
       country: 'United Arab Emirates',
@@ -355,10 +327,8 @@ class DummyData {
       id: 'taj-mahal',
       name: 'Taj Mahal',
       category: 'Historical',
-      description:
-          'An ivory-white marble mausoleum on the south bank of the Yamuna river in Agra, universally admired as an architectural masterpiece.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80',
+      description: 'An ivory-white marble mausoleum on the south bank of the Yamuna river in Agra, universally admired as an architectural masterpiece.',
+      imageUrl: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80',
       rating: 4.8,
       city: 'Agra',
       country: 'India',
@@ -379,10 +349,8 @@ class DummyData {
       id: 'charminar',
       name: 'Charminar',
       category: 'Historical',
-      description:
-          'An iconic 16th-century mosque and monument at the heart of Hyderabad, known for its four grand stucco minarets and bustling bazaars.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1626192292711-1a3a7e0c4e3a?auto=format&fit=crop&w=1200&q=80',
+      description: 'An iconic 16th-century mosque and monument at the heart of Hyderabad, known for its four grand stucco minarets and bustling bazaars.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Charminar_Hyderabad_1.jpg/960px-Charminar_Hyderabad_1.jpg',
       rating: 4.6,
       city: 'Hyderabad',
       country: 'India',
@@ -403,10 +371,8 @@ class DummyData {
       id: 'sydney-opera-house',
       name: 'Sydney Opera House',
       category: 'Historical',
-      description:
-          'A multi-venue performing arts centre in Sydney Harbour, famous for its distinctive shell-like roof sails and harbor views.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?auto=format&fit=crop&w=1200&q=80',
+      description: 'A multi-venue performing arts centre in Sydney Harbour, famous for its distinctive shell-like roof sails and harbor views.',
+      imageUrl: 'https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?auto=format&fit=crop&w=1200&q=80',
       rating: 4.7,
       city: 'Sydney',
       country: 'Australia',
@@ -427,10 +393,8 @@ class DummyData {
       id: 'great-barrier-reef',
       name: 'Great Barrier Reef',
       category: 'Nature',
-      description:
-          "The world's largest coral reef system composed of over 2,900 individual reefs, renowned for scuba diving and marine biodiversity.",
-      imageUrl:
-          'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80',
+      description: "The world's largest coral reef system composed of over 2,900 individual reefs, renowned for scuba diving and marine biodiversity.",
+      imageUrl: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80',
       rating: 4.8,
       city: 'Cairns',
       country: 'Australia',
@@ -451,10 +415,8 @@ class DummyData {
       id: 'christ-the-redeemer',
       name: 'Christ the Redeemer',
       category: 'Religious',
-      description:
-          'An Art Deco statue of Jesus Christ in Rio de Janeiro atop Mount Corcovado, overlooking Guanabara Bay and Sugarloaf Mountain.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1516306580123-e6e52b1b7b5f?auto=format&fit=crop&w=1200&q=80',
+      description: 'An Art Deco statue of Jesus Christ in Rio de Janeiro atop Mount Corcovado, overlooking Guanabara Bay and Sugarloaf Mountain.',
+      imageUrl: 'https://images.unsplash.com/photo-1516306580123-e6e52b1b7b5f?auto=format&fit=crop&w=1200&q=80',
       rating: 4.8,
       city: 'Rio de Janeiro',
       country: 'Brazil',
@@ -475,10 +437,8 @@ class DummyData {
       id: 'pyramids-of-giza',
       name: 'Great Pyramids of Giza',
       category: 'Historical',
-      description:
-          'The oldest of the Seven Wonders of the Ancient World and the only one to remain largely intact, located on the Giza Plateau.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?auto=format&fit=crop&w=1200&q=80',
+      description: 'The oldest of the Seven Wonders of the Ancient World and the only one to remain largely intact, located on the Giza Plateau.',
+      imageUrl: 'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?auto=format&fit=crop&w=1200&q=80',
       rating: 4.7,
       city: 'Giza',
       country: 'Egypt',
@@ -499,10 +459,8 @@ class DummyData {
       id: 'sagrada-familia',
       name: 'Basílica de la Sagrada Família',
       category: 'Religious',
-      description:
-          "Antoni Gaudí's renowned unfinished Roman Catholic minor basilica in Barcelona, showcasing transcendent modernist Catalan architecture.",
-      imageUrl:
-          'https://images.unsplash.com/photo-1583772260270-c7eb683e7cf5?auto=format&fit=crop&w=1200&q=80',
+      description: "Antoni Gaudí's renowned unfinished Roman Catholic minor basilica in Barcelona, showcasing transcendent modernist Catalan architecture.",
+      imageUrl: 'https://images.unsplash.com/photo-1583772260270-c7eb683e7cf5?auto=format&fit=crop&w=1200&q=80',
       rating: 4.8,
       city: 'Barcelona',
       country: 'Spain',
@@ -523,10 +481,8 @@ class DummyData {
       id: 'gardens-by-the-bay',
       name: 'Gardens by the Bay',
       category: 'Nature',
-      description:
-          'A sanctuary for nature lovers with futuristic Supertree structures, the Cloud Forest cooled conservatory, and Flower Dome in Marina Bay.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?auto=format&fit=crop&w=1200&q=80',
+      description: 'A sanctuary for nature lovers with futuristic Supertree structures, the Cloud Forest cooled conservatory, and Flower Dome in Marina Bay.',
+      imageUrl: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?auto=format&fit=crop&w=1200&q=80',
       rating: 4.8,
       city: 'Singapore',
       country: 'Singapore',
@@ -547,10 +503,8 @@ class DummyData {
       id: 'grand-bazaar',
       name: 'Grand Bazaar',
       category: 'Shopping',
-      description:
-          'One of the largest and oldest covered markets in the world, with 61 covered streets and over 4,000 shops selling lanterns, carpets, and spices.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?auto=format&fit=crop&w=1200&q=80',
+      description: 'One of the largest and oldest covered markets in the world, with 61 covered streets and over 4,000 shops selling lanterns, carpets, and spices.',
+      imageUrl: 'https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?auto=format&fit=crop&w=1200&q=80',
       rating: 4.4,
       city: 'Istanbul',
       country: 'Turkey',

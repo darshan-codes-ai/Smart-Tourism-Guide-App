@@ -11,6 +11,7 @@ import '../../services/attraction_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/review_service.dart';
 import '../../services/seed_service.dart';
+import '../../widgets/attraction_image.dart';
 import 'attraction_form_dialog.dart';
 
 /// Professional Admin Dashboard Screen with tabbed navigation:
@@ -88,7 +89,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _openEditDialog(Attraction attraction) async {
-    final updated = await AttractionFormDialog.show(context, attraction: attraction);
+    final updated = await AttractionFormDialog.show(
+      context,
+      attraction: attraction,
+    );
     if (updated == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -197,7 +201,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Review by "${review.userName}" removed successfully.'),
+              content: Text(
+                'Review by "${review.userName}" removed successfully.',
+              ),
               backgroundColor: AppTheme.primary,
             ),
           );
@@ -287,7 +293,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         showDialog<void>(
           context: context,
           builder: (resCtx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: const Row(
               children: [
                 Icon(Icons.check_circle_rounded, color: Colors.green),
@@ -333,7 +341,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (_isCheckingAuth) {
       return const Scaffold(
         body: Center(
-          child: CircularProgressIndicator(key: Key('admin_auth_checking_indicator')),
+          child: CircularProgressIndicator(
+            key: Key('admin_auth_checking_indicator'),
+          ),
         ),
       );
     }
@@ -359,7 +369,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     color: Colors.red.shade50,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.lock_rounded, size: 56, color: Colors.red.shade600),
+                  child: Icon(
+                    Icons.lock_rounded,
+                    size: 56,
+                    color: Colors.red.shade600,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 const Text(
@@ -386,7 +400,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   key: const Key('admin_unauthorized_return_button'),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(0, 48),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
                   ),
                   onPressed: () => _navigateBack(),
                   icon: const Icon(Icons.home_rounded),
@@ -423,8 +440,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 style: FilledButton.styleFrom(
                   backgroundColor: AppTheme.primary,
                   minimumSize: const Size(0, 38),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: _openCreateDialog,
                 icon: const Icon(Icons.add, size: 18),
@@ -454,9 +476,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         body: StreamBuilder<List<Attraction>>(
           stream: AttractionService.instance.watchAttractions(),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
               return const Center(
-                child: CircularProgressIndicator(key: Key('admin_stream_loading_indicator')),
+                child: CircularProgressIndicator(
+                  key: Key('admin_stream_loading_indicator'),
+                ),
               );
             }
 
@@ -467,7 +492,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline_rounded, size: 48, color: Colors.red.shade400),
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 48,
+                        color: Colors.red.shade400,
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         'Failed to load attractions:\n${snapshot.error}',
@@ -476,7 +505,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       ),
                       const SizedBox(height: 16),
                       OutlinedButton(
-                        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 40),
+                        ),
                         onPressed: () => setState(() {}),
                         child: const Text('Retry'),
                       ),
@@ -509,7 +540,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final totalCount = allAttractions.length;
     final avgRating = totalCount == 0
         ? 0.0
-        : allAttractions.map((a) => a.rating).reduce((a, b) => a + b) / totalCount;
+        : allAttractions.map((a) => a.rating).reduce((a, b) => a + b) /
+              totalCount;
 
     final categoryCounts = <String, int>{};
     final countryCounts = <String, int>{};
@@ -544,14 +576,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     // Filter attractions
     final filtered = allAttractions.where((a) {
-      final matchesCategory = _selectedCategory == null ||
+      final matchesCategory =
+          _selectedCategory == null ||
           _selectedCategory == 'All' ||
           a.category.toLowerCase() == _selectedCategory!.toLowerCase();
-      final matchesCountry = _selectedCountry == null ||
+      final matchesCountry =
+          _selectedCountry == null ||
           _selectedCountry == 'All' ||
           a.country.toLowerCase() == _selectedCountry!.toLowerCase();
       final q = _searchQuery.toLowerCase();
-      final matchesSearch = q.isEmpty ||
+      final matchesSearch =
+          q.isEmpty ||
           a.name.toLowerCase().contains(q) ||
           a.category.toLowerCase().contains(q) ||
           a.city.toLowerCase().contains(q) ||
@@ -584,12 +619,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       key: const Key('admin_seed_database_button'),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(0, 36),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       onPressed: _handleSeedGlobalAttractions,
                       icon: const Icon(Icons.cloud_upload_outlined, size: 16),
-                      label: const Text('Seed Database', style: TextStyle(fontSize: 12)),
+                      label: const Text(
+                        'Seed Database',
+                        style: TextStyle(fontSize: 12),
+                      ),
                     ),
                   ],
                 ),
@@ -604,12 +647,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     topCountry: topCountry,
                     topCountryCount: topCountryCount,
                   ),
-                  future: AdminService.instance.getDashboardStats(allAttractions),
+                  future: AdminService.instance.getDashboardStats(
+                    allAttractions,
+                  ),
                   builder: (context, statsSnapshot) {
-                    final stats = statsSnapshot.data ??
+                    final stats =
+                        statsSnapshot.data ??
                         AdminDashboardStats(
                           totalAttractions: totalCount,
-                          averageRating: double.parse(avgRating.toStringAsFixed(2)),
+                          averageRating: double.parse(
+                            avgRating.toStringAsFixed(2),
+                          ),
                           totalReviews: 0,
                           topCategory: topCategory,
                           topCategoryCount: topCategoryCount,
@@ -651,7 +699,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             ),
                             _buildMetricCard(
                               title: 'Users & Trips',
-                              value: '${stats.totalUsers ?? "—"} / ${stats.totalTrips ?? "—"}',
+                              value:
+                                  '${stats.totalUsers ?? "—"} / ${stats.totalTrips ?? "—"}',
                               subtitle: stats.usersRestricted
                                   ? 'Restricted by rules'
                                   : 'Active accounts / trips',
@@ -672,7 +721,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         // Search & Category/Country Filters
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -707,7 +759,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         padding: const EdgeInsets.only(right: 8.0),
                         child: ChoiceChip(
                           label: const Text('All Categories'),
-                          selected: _selectedCategory == null || _selectedCategory == 'All',
+                          selected:
+                              _selectedCategory == null ||
+                              _selectedCategory == 'All',
                           onSelected: (_) {
                             setState(() => _selectedCategory = 'All');
                           },
@@ -729,13 +783,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       }),
                       if (countryCounts.isNotEmpty) ...[
                         const SizedBox(width: 8),
-                        Container(width: 1, height: 20, color: Colors.grey.shade300),
+                        Container(
+                          width: 1,
+                          height: 20,
+                          color: Colors.grey.shade300,
+                        ),
                         const SizedBox(width: 8),
                         Padding(
                           padding: const EdgeInsets.only(right: 8.0),
                           child: ChoiceChip(
                             label: const Text('All Countries'),
-                            selected: _selectedCountry == null || _selectedCountry == 'All',
+                            selected:
+                                _selectedCountry == null ||
+                                _selectedCountry == 'All',
                             onSelected: (_) {
                               setState(() => _selectedCountry = 'All');
                             },
@@ -789,7 +849,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.search_off_rounded, size: 56, color: Colors.grey.shade400),
+                    Icon(
+                      Icons.search_off_rounded,
+                      size: 56,
+                      color: Colors.grey.shade400,
+                    ),
                     const SizedBox(height: 12),
                     const Text(
                       'No attractions found',
@@ -819,10 +883,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         label: const Text('Seed Global Attractions Catalog'),
                       ),
                     ] else if (_searchQuery.isNotEmpty ||
-                        (_selectedCategory != null && _selectedCategory != 'All') ||
+                        (_selectedCategory != null &&
+                            _selectedCategory != 'All') ||
                         (_selectedCountry != null && _selectedCountry != 'All'))
                       OutlinedButton(
-                        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 40),
+                        ),
                         onPressed: () {
                           _searchController.clear();
                           setState(() {
@@ -839,21 +906,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           )
         else
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final attraction = filtered[index];
-                  return _buildAttractionCard(attraction);
-                },
-                childCount: filtered.length,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final attraction = filtered[index];
+                return _buildAttractionCard(attraction);
+              }, childCount: filtered.length),
             ),
           ),
 
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 40),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 40)),
       ],
     );
   }
@@ -866,7 +931,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return FutureBuilder<List<Review>>(
       future: ReviewService.instance.getRecentReviews(limit: 100),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -875,7 +941,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         // Filter reviews
         final filteredReviews = allReviews.where((r) {
           final q = _reviewSearchQuery.toLowerCase();
-          final matchesSearch = q.isEmpty ||
+          final matchesSearch =
+              q.isEmpty ||
               r.comment.toLowerCase().contains(q) ||
               r.userName.toLowerCase().contains(q) ||
               r.attractionId.toLowerCase().contains(q);
@@ -898,7 +965,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               key: const Key('admin_review_search_field'),
               controller: _reviewSearchController,
               decoration: InputDecoration(
-                hintText: 'Search reviews by comment, user, or attraction ID...',
+                hintText:
+                    'Search reviews by comment, user, or attraction ID...',
                 prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: _reviewSearchQuery.isNotEmpty
                     ? IconButton(
@@ -924,7 +992,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ChoiceChip(
                     label: Text('All (${allReviews.length})'),
                     selected: _reviewRatingFilter == 'All',
-                    onSelected: (_) => setState(() => _reviewRatingFilter = 'All'),
+                    onSelected: (_) =>
+                        setState(() => _reviewRatingFilter = 'All'),
                   ),
                   const SizedBox(width: 8),
                   ChoiceChip(
@@ -933,7 +1002,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ),
                     selected: _reviewRatingFilter == 'Low (<=2)',
                     selectedColor: Colors.amber.shade100,
-                    onSelected: (_) => setState(() => _reviewRatingFilter = 'Low (<=2)'),
+                    onSelected: (_) =>
+                        setState(() => _reviewRatingFilter = 'Low (<=2)'),
                   ),
                   const SizedBox(width: 8),
                   ChoiceChip(
@@ -941,7 +1011,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       '5 Stars (${allReviews.where((r) => r.rating >= 4.9).length})',
                     ),
                     selected: _reviewRatingFilter == '5 Stars',
-                    onSelected: (_) => setState(() => _reviewRatingFilter = '5 Stars'),
+                    onSelected: (_) =>
+                        setState(() => _reviewRatingFilter = '5 Stars'),
                   ),
                 ],
               ),
@@ -969,7 +1040,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 child: Center(
                   child: Column(
                     children: [
-                      Icon(Icons.rate_review_outlined, size: 48, color: Colors.grey.shade400),
+                      Icon(
+                        Icons.rate_review_outlined,
+                        size: 48,
+                        color: Colors.grey.shade400,
+                      ),
                       const SizedBox(height: 12),
                       const Text(
                         'No reviews found',
@@ -982,7 +1057,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       const SizedBox(height: 4),
                       const Text(
                         'No reviews match the current moderation criteria.',
-                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
@@ -1018,7 +1096,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: AppTheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -1035,7 +1116,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 const SizedBox(width: 8),
                 if (isLowRating)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.amber.shade100,
                       borderRadius: BorderRadius.circular(8),
@@ -1052,7 +1136,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 const Spacer(),
                 Row(
                   children: [
-                    const Icon(Icons.star_rounded, size: 16, color: Colors.amber),
+                    const Icon(
+                      Icons.star_rounded,
+                      size: 16,
+                      color: Colors.amber,
+                    ),
                     const SizedBox(width: 2),
                     Text(
                       review.rating.toStringAsFixed(1),
@@ -1102,7 +1190,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                   onPressed: () => _confirmDeleteReview(review),
                   icon: const Icon(Icons.delete_outline_rounded, size: 16),
-                  label: const Text('Remove Review', style: TextStyle(fontSize: 12)),
+                  label: const Text(
+                    'Remove Review',
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ),
               ],
             ),
@@ -1126,14 +1217,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           decoration: BoxDecoration(
             color: const Color(0xFF176B87).withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF176B87).withValues(alpha: 0.2)),
+            border: Border.all(
+              color: const Color(0xFF176B87).withValues(alpha: 0.2),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Row(
                 children: [
-                  Icon(Icons.security_rounded, color: Color(0xFF176B87), size: 22),
+                  Icon(
+                    Icons.security_rounded,
+                    color: Color(0xFF176B87),
+                    size: 22,
+                  ),
                   SizedBox(width: 8),
                   Text(
                     'Security & Access Control Architecture',
@@ -1150,7 +1247,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 '• Fail-Closed Authorization: Administrative privileges are checked via Firebase custom token claims and verified against the Firestore /users/{uid} profile document.\n'
                 '• Immutability & Self-Promotion Prevention: Firestore security rules prevent users from granting themselves administrator roles (request.resource.data.role == resource.data.role).\n'
                 '• Privacy Enforcement: Client apps cannot browse arbitrary user accounts or export passwords/tokens; user role administration requires the Firebase Admin SDK on a trusted backend.',
-                style: TextStyle(fontSize: 13, height: 1.45, color: AppTheme.textPrimary),
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.45,
+                  color: AppTheme.textPrimary,
+                ),
               ),
             ],
           ),
@@ -1175,7 +1276,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         FutureBuilder<List<AppUser>>(
           future: FirestoreService.instance.getUsersForAdmin(limit: 50),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
               return const Center(
                 child: Padding(
                   padding: EdgeInsets.all(24.0),
@@ -1196,18 +1298,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.people_outline_rounded, size: 48, color: Colors.grey.shade400),
+                    Icon(
+                      Icons.people_outline_rounded,
+                      size: 48,
+                      color: Colors.grey.shade400,
+                    ),
                     const SizedBox(height: 12),
                     const Text(
                       'No user accounts listed',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     const Text(
                       'Direct client-side iteration of the /users collection is restricted by Firestore security rules. '
                       'User management operations must be performed using the Firebase Admin SDK in production.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -1224,28 +1336,45 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                     side: BorderSide(
-                      color: isUserAdmin ? AppTheme.primary.withValues(alpha: 0.5) : Colors.grey.shade200,
+                      color: isUserAdmin
+                          ? AppTheme.primary.withValues(alpha: 0.5)
+                          : Colors.grey.shade200,
                     ),
                   ),
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: isUserAdmin ? AppTheme.primary : Colors.grey.shade300,
+                      backgroundColor: isUserAdmin
+                          ? AppTheme.primary
+                          : Colors.grey.shade300,
                       child: Icon(
-                        isUserAdmin ? Icons.admin_panel_settings_rounded : Icons.person_rounded,
+                        isUserAdmin
+                            ? Icons.admin_panel_settings_rounded
+                            : Icons.person_rounded,
                         color: Colors.white,
                         size: 20,
                       ),
                     ),
                     title: Text(
-                      (u.name != null && u.name!.isNotEmpty) ? u.name! : 'User (${u.uid})',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      (u.name != null && u.name!.isNotEmpty)
+                          ? u.name!
+                          : 'User (${u.uid})',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
                     ),
                     subtitle: Text(
                       'Email: ${(u.email != null && u.email!.isNotEmpty) ? u.email! : 'None'} • Provider: ${u.provider}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
                     trailing: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: isUserAdmin
                             ? AppTheme.primary.withValues(alpha: 0.15)
@@ -1257,7 +1386,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: isUserAdmin ? AppTheme.primary : Colors.grey.shade700,
+                          color: isUserAdmin
+                              ? AppTheme.primary
+                              : Colors.grey.shade700,
                         ),
                       ),
                     ),
@@ -1363,20 +1494,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Thumbnail
-            ClipRRect(
+            AttractionImage(
+              imageUrl: attraction.imageUrl,
+              category: attraction.category,
+              width: 72,
+              height: 72,
               borderRadius: BorderRadius.circular(12),
-              child: SizedBox(
-                width: 72,
-                height: 72,
-                child: Image.network(
-                  attraction.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: Colors.grey.shade200,
-                    child: const Icon(Icons.landscape_rounded, color: Colors.grey, size: 32),
-                  ),
-                ),
-              ),
             ),
             const SizedBox(width: 14),
 
@@ -1400,7 +1523,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: AppTheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
@@ -1419,14 +1545,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.location_on_outlined, size: 14, color: Colors.grey.shade600),
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 14,
+                        color: Colors.grey.shade600,
+                      ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           attraction.displayLocation.isNotEmpty
                               ? attraction.displayLocation
                               : attraction.location,
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade700,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1436,7 +1569,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.star_rounded, size: 16, color: Colors.amber),
+                      const Icon(
+                        Icons.star_rounded,
+                        size: 16,
+                        color: Colors.amber,
+                      ),
                       const SizedBox(width: 2),
                       Text(
                         attraction.rating.toStringAsFixed(1),
@@ -1447,11 +1584,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Icon(Icons.payments_outlined, size: 14, color: Colors.grey.shade600),
+                      Icon(
+                        Icons.payments_outlined,
+                        size: 14,
+                        color: Colors.grey.shade600,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         attraction.formattedFee,
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade700,
+                        ),
                       ),
                     ],
                   ),

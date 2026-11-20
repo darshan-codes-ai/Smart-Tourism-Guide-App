@@ -136,30 +136,28 @@ void main() {
       AuthService.resetForTest();
     });
 
-    testWidgets('shows specific SnackBar error when Google Sign-In is cancelled', (
-      tester,
-    ) async {
-      AuthService.testSignInWithGoogleOverride = () async {
-        throw const AuthServiceException('Google Sign-In was cancelled.');
-      };
+    testWidgets(
+      'shows specific SnackBar error when Google Sign-In is cancelled',
+      (tester) async {
+        AuthService.testSignInWithGoogleOverride = () async {
+          throw const AuthServiceException('Google Sign-In was cancelled.');
+        };
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: const LoginScreen(),
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          MaterialApp(theme: AppTheme.light(), home: const LoginScreen()),
+        );
+        await tester.pumpAndSettle();
 
-      final googleButton = find.text('Continue with Google');
-      expect(googleButton, findsOneWidget);
+        final googleButton = find.text('Continue with Google');
+        expect(googleButton, findsOneWidget);
 
-      await tester.tap(googleButton);
-      await tester.pump();
-      await tester.pumpAndSettle();
+        await tester.tap(googleButton);
+        await tester.pump();
+        await tester.pumpAndSettle();
 
-      expect(find.text('Google Sign-In was cancelled.'), findsOneWidget);
-    });
+        expect(find.text('Google Sign-In was cancelled.'), findsOneWidget);
+      },
+    );
 
     testWidgets('shows specific SnackBar error when popup is blocked', (
       tester,
@@ -171,10 +169,7 @@ void main() {
       };
 
       await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: const LoginScreen(),
-        ),
+        MaterialApp(theme: AppTheme.light(), home: const LoginScreen()),
       );
       await tester.pumpAndSettle();
 

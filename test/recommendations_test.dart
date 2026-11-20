@@ -58,7 +58,8 @@ void main() {
     city: 'Banff',
     country: 'Canada',
     location: 'Alberta, Canada',
-    description: 'Stunning rocky mountains, glacial lakes, wildlife and hiking trails.',
+    description:
+        'Stunning rocky mountains, glacial lakes, wildlife and hiking trails.',
     imageUrl: 'https://images.unsplash.com/photo-banff',
     rating: 4.9,
     reviewCount: 6500,
@@ -131,21 +132,27 @@ void main() {
   });
 
   group('1. TravelPreference & RecommendedAttraction Model Tests', () {
-    test('TravelInterest enum provides label, icon, categories, and keywords', () {
-      for (final interest in TravelInterest.values) {
-        expect(interest.label, isNotEmpty);
-        expect(interest.keywords, isNotEmpty);
-        expect(interest.icon, isNotNull);
-        expect(interest.categories, isNotEmpty);
-        expect(interest.id, isNotEmpty);
-      }
-      expect(TravelInterest.historyAndCulture.label, 'History & Culture');
-      expect(TravelInterest.natureAndWildlife.label, 'Nature & Wildlife');
-      expect(TravelInterest.beaches.label, 'Beaches & Coast');
-      expect(TravelInterest.adventure.label, 'Adventure');
-      expect(TravelInterest.architecture.label, 'Architecture');
-      expect(TravelInterest.religiousAndHeritage.label, 'Religious & Heritage');
-    });
+    test(
+      'TravelInterest enum provides label, icon, categories, and keywords',
+      () {
+        for (final interest in TravelInterest.values) {
+          expect(interest.label, isNotEmpty);
+          expect(interest.keywords, isNotEmpty);
+          expect(interest.icon, isNotNull);
+          expect(interest.categories, isNotEmpty);
+          expect(interest.id, isNotEmpty);
+        }
+        expect(TravelInterest.historyAndCulture.label, 'History & Culture');
+        expect(TravelInterest.natureAndWildlife.label, 'Nature & Wildlife');
+        expect(TravelInterest.beaches.label, 'Beaches & Coast');
+        expect(TravelInterest.adventure.label, 'Adventure');
+        expect(TravelInterest.architecture.label, 'Architecture');
+        expect(
+          TravelInterest.religiousAndHeritage.label,
+          'Religious & Heritage',
+        );
+      },
+    );
 
     test('BudgetPreference enum provides proper labels', () {
       expect(BudgetPreference.any.label, 'Any Budget');
@@ -169,7 +176,9 @@ void main() {
       final withDest = defaultPref.copyWith(selectedDestination: 'France');
       expect(withDest.hasActiveFilters, isTrue);
 
-      final withBudget = defaultPref.copyWith(budget: BudgetPreference.freeOnly);
+      final withBudget = defaultPref.copyWith(
+        budget: BudgetPreference.freeOnly,
+      );
       expect(withBudget.hasActiveFilters, isTrue);
 
       final withRating = defaultPref.copyWith(minRating: 4.5);
@@ -194,7 +203,10 @@ void main() {
 
     test('TravelPreference toMap and fromMap serialization round-trip', () {
       final pref = TravelPreference(
-        selectedInterests: {TravelInterest.historyAndCulture, TravelInterest.architecture},
+        selectedInterests: {
+          TravelInterest.historyAndCulture,
+          TravelInterest.architecture,
+        },
         selectedDestination: 'France',
         budget: BudgetPreference.budgetFriendly,
         minRating: 4.5,
@@ -204,7 +216,10 @@ void main() {
       final restored = TravelPreference.fromMap(map);
 
       expect(restored.selectedInterests.length, 2);
-      expect(restored.selectedInterests, contains(TravelInterest.historyAndCulture));
+      expect(
+        restored.selectedInterests,
+        contains(TravelInterest.historyAndCulture),
+      );
       expect(restored.selectedInterests, contains(TravelInterest.architecture));
       expect(restored.selectedDestination, 'France');
       expect(restored.budget, BudgetPreference.budgetFriendly);
@@ -291,21 +306,31 @@ void main() {
       expect(topNature.attraction.name, 'Banff National Park');
     });
 
-    test('destination filtering hard filters attractions by country/location', () {
-      final franceRecs = RecommendationService.instance.rankAttractions(
-        attractions: allTestAttractions,
-        preference: const TravelPreference(selectedDestination: 'France'),
-      );
+    test(
+      'destination filtering hard filters attractions by country/location',
+      () {
+        final franceRecs = RecommendationService.instance.rankAttractions(
+          attractions: allTestAttractions,
+          preference: const TravelPreference(selectedDestination: 'France'),
+        );
 
-      expect(franceRecs.isNotEmpty, isTrue);
-      for (final rec in franceRecs) {
-        final matches = rec.attraction.country.toLowerCase().contains('france') ||
-            rec.attraction.location.toLowerCase().contains('france');
-        expect(matches, isTrue);
-      }
-      expect(franceRecs.map((r) => r.attraction.id), contains('eiffel-tower'));
-      expect(franceRecs.map((r) => r.attraction.id), isNot(contains('colosseum-rome')));
-    });
+        expect(franceRecs.isNotEmpty, isTrue);
+        for (final rec in franceRecs) {
+          final matches =
+              rec.attraction.country.toLowerCase().contains('france') ||
+              rec.attraction.location.toLowerCase().contains('france');
+          expect(matches, isTrue);
+        }
+        expect(
+          franceRecs.map((r) => r.attraction.id),
+          contains('eiffel-tower'),
+        );
+        expect(
+          franceRecs.map((r) => r.attraction.id),
+          isNot(contains('colosseum-rome')),
+        );
+      },
+    );
 
     test('non-matching destination returns empty list gracefully', () {
       final recs = RecommendationService.instance.rankAttractions(
@@ -334,12 +359,17 @@ void main() {
     test('budget filter Budget Friendly filters out high-cost attractions', () {
       final budgetRecs = RecommendationService.instance.rankAttractions(
         attractions: allTestAttractions,
-        preference: const TravelPreference(budget: BudgetPreference.budgetFriendly),
+        preference: const TravelPreference(
+          budget: BudgetPreference.budgetFriendly,
+        ),
       );
 
       expect(budgetRecs.isNotEmpty, isTrue);
       // €250 Safari should be excluded
-      expect(budgetRecs.any((r) => r.attraction.id == 'expensive-safari'), isFalse);
+      expect(
+        budgetRecs.any((r) => r.attraction.id == 'expensive-safari'),
+        isFalse,
+      );
       // €26 Eiffel Tower and Free Banff should be included
       expect(budgetRecs.any((r) => r.attraction.id == 'eiffel-tower'), isTrue);
       expect(budgetRecs.any((r) => r.attraction.id == 'banff-nature'), isTrue);
@@ -351,7 +381,9 @@ void main() {
         preference: const TravelPreference(),
         savedAttractionIds: {},
       );
-      final initialColosseum = initialRecs.firstWhere((r) => r.attraction.id == 'colosseum-rome');
+      final initialColosseum = initialRecs.firstWhere(
+        (r) => r.attraction.id == 'colosseum-rome',
+      );
 
       // Now pass colosseum as a saved attraction id
       final boostedRecs = RecommendationService.instance.rankAttractions(
@@ -359,9 +391,14 @@ void main() {
         preference: const TravelPreference(),
         savedAttractionIds: {'colosseum-rome'},
       );
-      final boostedColosseum = boostedRecs.firstWhere((r) => r.attraction.id == 'colosseum-rome');
+      final boostedColosseum = boostedRecs.firstWhere(
+        (r) => r.attraction.id == 'colosseum-rome',
+      );
 
-      expect(boostedColosseum.matchScore, greaterThan(initialColosseum.matchScore));
+      expect(
+        boostedColosseum.matchScore,
+        greaterThan(initialColosseum.matchScore),
+      );
       expect(boostedColosseum.matchedTags, contains('Saved Place'));
     });
 
@@ -416,7 +453,10 @@ void main() {
       service.addListener(listener);
 
       service.toggleInterest(TravelInterest.adventure);
-      expect(service.currentPreference.selectedInterests, contains(TravelInterest.adventure));
+      expect(
+        service.currentPreference.selectedInterests,
+        contains(TravelInterest.adventure),
+      );
       expect(notifications, 1);
 
       service.setDestination('Italy');
@@ -475,21 +515,30 @@ void main() {
       );
     }
 
-    testWidgets('shows loading indicator when waiting for attractions', (tester) async {
+    testWidgets('shows loading indicator when waiting for attractions', (
+      tester,
+    ) async {
       final controller = StreamController<List<Attraction>>();
       AttractionService.testStream = controller.stream;
 
       await tester.pumpWidget(buildTestScreen());
       await tester.pump();
 
-      expect(find.byKey(const Key('recommendations_loading_indicator')), findsOneWidget);
+      expect(
+        find.byKey(const Key('recommendations_loading_indicator')),
+        findsOneWidget,
+      );
       expect(find.text('AI Travel Recommendations'), findsOneWidget);
 
       await controller.close();
     });
 
-    testWidgets('shows error state and retry button on stream error', (tester) async {
-      AttractionService.testStream = Stream.error('Failed to load Firestore data');
+    testWidgets('shows error state and retry button on stream error', (
+      tester,
+    ) async {
+      AttractionService.testStream = Stream.error(
+        'Failed to load Firestore data',
+      );
 
       await tester.pumpWidget(buildTestScreen());
       await tester.pumpAndSettle();
@@ -498,7 +547,9 @@ void main() {
       expect(find.text('Retry'), findsOneWidget);
     });
 
-    testWidgets('shows empty state when no attractions match filters', (tester) async {
+    testWidgets('shows empty state when no attractions match filters', (
+      tester,
+    ) async {
       AttractionService.testStream = Stream.value(allTestAttractions);
       RecommendationService.instance.setDestination('Antarctica');
 
@@ -506,10 +557,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('No matching attractions found'), findsOneWidget);
-      expect(find.byKey(const Key('recommendations_empty_reset_button')), findsOneWidget);
+      expect(
+        find.byKey(const Key('recommendations_empty_reset_button')),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('renders all 6 interest filter chips and controls', (tester) async {
+    testWidgets('renders all 6 interest filter chips and controls', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -528,7 +584,9 @@ void main() {
       expect(find.text('Any Budget'), findsOneWidget);
     });
 
-    testWidgets('tapping interest chip updates recommendations', (tester) async {
+    testWidgets('tapping interest chip updates recommendations', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -539,7 +597,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Nature & Wildlife chip
-      final natureChip = find.byKey(const Key('preference_interest_nature_wildlife'));
+      final natureChip = find.byKey(
+        const Key('preference_interest_nature_wildlife'),
+      );
       expect(natureChip, findsOneWidget);
       await tester.tap(natureChip);
       await tester.pumpAndSettle();
@@ -553,22 +613,27 @@ void main() {
       expect(find.text('Banff National Park'), findsWidgets);
     });
 
-    testWidgets('recommendation card displays match score badge, reason, and actions', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
+    testWidgets(
+      'recommendation card displays match score badge, reason, and actions',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 2400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() => tester.view.resetPhysicalSize());
 
-      AttractionService.testStream = Stream.value([sampleAttraction1]);
-      RecommendationService.instance.toggleInterest(TravelInterest.historyAndCulture);
+        AttractionService.testStream = Stream.value([sampleAttraction1]);
+        RecommendationService.instance.toggleInterest(
+          TravelInterest.historyAndCulture,
+        );
 
-      await tester.pumpWidget(buildTestScreen());
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(buildTestScreen());
+        await tester.pumpAndSettle();
 
-      expect(find.text('Eiffel Tower'), findsOneWidget);
-      expect(find.textContaining('% Match'), findsOneWidget);
-      expect(find.text('Add to Trip'), findsOneWidget);
-      expect(find.text('Details'), findsOneWidget);
-    });
+        expect(find.text('Eiffel Tower'), findsOneWidget);
+        expect(find.textContaining('% Match'), findsOneWidget);
+        expect(find.text('Add to Trip'), findsOneWidget);
+        expect(find.text('Details'), findsOneWidget);
+      },
+    );
 
     testWidgets('favorite button toggles save state', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
@@ -582,7 +647,9 @@ void main() {
 
       expect(SavedPlacesStore.instance.isSaved('eiffel-tower'), isFalse);
 
-      final favButton = find.byKey(const Key('recommended_favorite_button_eiffel-tower'));
+      final favButton = find.byKey(
+        const Key('recommended_favorite_button_eiffel-tower'),
+      );
       expect(favButton, findsOneWidget);
       await tester.tap(favButton);
       await tester.pumpAndSettle();
@@ -596,20 +663,29 @@ void main() {
       addTearDown(() => tester.view.resetPhysicalSize());
 
       AttractionService.testStream = Stream.value(allTestAttractions);
-      RecommendationService.instance.toggleInterest(TravelInterest.architecture);
+      RecommendationService.instance.toggleInterest(
+        TravelInterest.architecture,
+      );
 
       await tester.pumpWidget(buildTestScreen());
       await tester.pumpAndSettle();
 
-      final resetBtn = find.byKey(const Key('recommendations_appbar_reset_button'));
+      final resetBtn = find.byKey(
+        const Key('recommendations_appbar_reset_button'),
+      );
       expect(resetBtn, findsOneWidget);
       await tester.tap(resetBtn);
       await tester.pumpAndSettle();
 
-      expect(RecommendationService.instance.currentPreference.hasActiveFilters, isFalse);
+      expect(
+        RecommendationService.instance.currentPreference.hasActiveFilters,
+        isFalse,
+      );
     });
 
-    testWidgets('details button opens attraction details bottom sheet', (tester) async {
+    testWidgets('details button opens attraction details bottom sheet', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -619,7 +695,9 @@ void main() {
       await tester.pumpWidget(buildTestScreen());
       await tester.pumpAndSettle();
 
-      final detailsBtn = find.byKey(const Key('recommended_view_details_button_eiffel-tower'));
+      final detailsBtn = find.byKey(
+        const Key('recommended_view_details_button_eiffel-tower'),
+      );
       expect(detailsBtn, findsOneWidget);
       await tester.tap(detailsBtn);
       await tester.pumpAndSettle();
@@ -629,4 +707,3 @@ void main() {
     });
   });
 }
-

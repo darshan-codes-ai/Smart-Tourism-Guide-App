@@ -6,7 +6,7 @@ import '../data/dummy_data.dart';
 import '../models/attraction.dart';
 import '../services/trip_service.dart';
 import 'add_to_trip_sheet.dart';
-import 'category_chip.dart';
+import 'attraction_image.dart';
 import 'reviews_section.dart';
 import 'weather_section.dart';
 
@@ -184,27 +184,12 @@ class _CardImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        ClipRRect(
+        AttractionImage(
+          imageUrl: attraction.imageUrl,
+          category: attraction.category,
+          width: width,
+          height: height,
           borderRadius: borderRadius,
-          child: SizedBox(
-            width: width ?? double.infinity,
-            height: height,
-            child: Image.network(
-              attraction.imageUrl,
-              fit: BoxFit.cover,
-              cacheWidth: width != null && width! > 0
-                  ? (width! * 2).round()
-                  : 600,
-              cacheHeight: (height * 2).round(),
-              filterQuality: FilterQuality.medium,
-              errorBuilder: (_, _, _) =>
-                  _ImageFallback(category: attraction.category),
-              loadingBuilder: (context, child, progress) {
-                if (progress == null) return child;
-                return const ColoredBox(color: Color(0xFFE8F1F4));
-              },
-            ),
-          ),
         ),
         Positioned(
           top: 8,
@@ -292,26 +277,6 @@ class _RatingDistanceRow extends StatelessWidget {
   }
 }
 
-class _ImageFallback extends StatelessWidget {
-  const _ImageFallback({required this.category});
-
-  final String category;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: const Color(0xFFD7EBEA),
-      child: Center(
-        child: Icon(
-          CategoryChip.iconFor(category),
-          size: 36,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-      ),
-    );
-  }
-}
-
 Future<void> showAttractionDetails(
   BuildContext context,
   Attraction attraction,
@@ -329,6 +294,23 @@ Future<void> showAttractionDetails(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              AttractionImage.fromAttraction(
+                attraction: attraction,
+                height: 190,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              if (attraction.imageAuthor != null &&
+                  attraction.imageAuthor!.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Photo: ${attraction.imageAuthor}${attraction.imageLicense != null ? ' (${attraction.imageLicense})' : ''}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 11,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
               Text(
                 attraction.name,
                 style: theme.textTheme.headlineSmall?.copyWith(

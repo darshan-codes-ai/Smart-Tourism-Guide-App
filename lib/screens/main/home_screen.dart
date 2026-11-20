@@ -115,9 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               tooltip: 'AI Recommendations',
                               onPressed: () =>
                                   context.push(AppRouter.recommendations),
-                              icon: const Icon(
-                                Icons.auto_awesome_rounded,
-                              ),
+                              icon: const Icon(Icons.auto_awesome_rounded),
                             ),
                             const SizedBox(width: 8),
                             IconButton.filledTonal(

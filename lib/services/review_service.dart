@@ -55,7 +55,9 @@ class ReviewService {
     if (testControllers != null && testControllers!.containsKey(cleanId)) {
       final controller = testControllers![cleanId];
       if (controller != null && !controller.isClosed) {
-        final list = List<Review>.from(testReviews?[cleanId] ?? const <Review>[]);
+        final list = List<Review>.from(
+          testReviews?[cleanId] ?? const <Review>[],
+        );
         list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         controller.add(list);
       }
@@ -95,7 +97,9 @@ class ReviewService {
         testControllers![cleanAttractionId] = controller;
       }
 
-      final initialList = List<Review>.from(testReviews?[cleanAttractionId] ?? const <Review>[]);
+      final initialList = List<Review>.from(
+        testReviews?[cleanAttractionId] ?? const <Review>[],
+      );
       initialList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       Stream<List<Review>> generator() async* {
@@ -111,10 +115,9 @@ class ReviewService {
       return const Stream<List<Review>>.empty();
     }
 
-    return collection
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
+    return collection.orderBy('createdAt', descending: true).snapshots().map((
+      snapshot,
+    ) {
       return snapshot.docs.map((doc) {
         return Review.fromFirestore(
           doc.id,
@@ -171,11 +174,13 @@ class ReviewService {
         return (averageRating: 0.0, totalReviews: 0);
       }
       final reviews = snapshot.docs
-          .map((doc) => Review.fromFirestore(
-                doc.id,
-                doc.data(),
-                attractionId: cleanAttractionId,
-              ))
+          .map(
+            (doc) => Review.fromFirestore(
+              doc.id,
+              doc.data(),
+              attractionId: cleanAttractionId,
+            ),
+          )
           .toList();
       final sum = reviews.fold<double>(0.0, (acc, r) => acc + r.rating);
       final avg = double.parse((sum / reviews.length).toStringAsFixed(1));
@@ -233,7 +238,9 @@ class ReviewService {
   }) async {
     final cleanAttractionId = attractionId.trim();
     final cleanUserId = userId.trim();
-    final cleanUserName = userName.trim().isEmpty ? 'Traveler' : userName.trim();
+    final cleanUserName = userName.trim().isEmpty
+        ? 'Traveler'
+        : userName.trim();
     final cleanComment = comment.trim();
 
     // Validation
@@ -244,7 +251,9 @@ class ReviewService {
       throw const ReviewServiceException('Please sign in to write a review.');
     }
     if (rating < 1.0 || rating > 5.0) {
-      throw const ReviewServiceException('Rating must be between 1 and 5 stars.');
+      throw const ReviewServiceException(
+        'Rating must be between 1 and 5 stars.',
+      );
     }
     if (cleanComment.isEmpty) {
       throw const ReviewServiceException('Comment cannot be empty.');
@@ -290,7 +299,9 @@ class ReviewService {
           createdAt: now,
           updatedAt: now,
         );
-        testReviews!.putIfAbsent(cleanAttractionId, () => <Review>[]).add(review);
+        testReviews!
+            .putIfAbsent(cleanAttractionId, () => <Review>[])
+            .add(review);
         _notifyTestStream(cleanAttractionId);
         return review;
       }
@@ -354,10 +365,14 @@ class ReviewService {
       throw const ReviewServiceException('Invalid review reference.');
     }
     if (cleanUserId.isEmpty) {
-      throw const ReviewServiceException('Please sign in to update your review.');
+      throw const ReviewServiceException(
+        'Please sign in to update your review.',
+      );
     }
     if (rating < 1.0 || rating > 5.0) {
-      throw const ReviewServiceException('Rating must be between 1 and 5 stars.');
+      throw const ReviewServiceException(
+        'Rating must be between 1 and 5 stars.',
+      );
     }
     if (cleanComment.isEmpty) {
       throw const ReviewServiceException('Comment cannot be empty.');
@@ -426,7 +441,9 @@ class ReviewService {
       throw const ReviewServiceException('Invalid review reference.');
     }
     if (cleanUserId.isEmpty) {
-      throw const ReviewServiceException('Please sign in to delete your review.');
+      throw const ReviewServiceException(
+        'Please sign in to delete your review.',
+      );
     }
 
     try {
@@ -548,15 +565,17 @@ class ReviewService {
       await collection.doc(cleanReviewId).delete();
     } on FirebaseException catch (e) {
       throw ReviewServiceException(
-        e.message ?? 'Failed to moderate review. Please check Firestore security rules.',
+        e.message ??
+            'Failed to moderate review. Please check Firestore security rules.',
       );
     } catch (e) {
       if (e is ReviewServiceException) rethrow;
       if (e is AdminAuthorizationException) {
         throw ReviewServiceException(e.message);
       }
-      throw const ReviewServiceException('Failed to moderate review. Please try again.');
+      throw const ReviewServiceException(
+        'Failed to moderate review. Please try again.',
+      );
     }
   }
 }
-
